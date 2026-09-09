@@ -276,7 +276,7 @@ function QuestionsSection({ kit, kitId }: { kit: Kit; kitId: string }) {
   );
 }
 
-function FlashcardsSection({ kit }: { kit: Kit }) {
+function FlashcardsSection({ kit, kitId }: { kit: Kit; kitId: string }) {
   return (
     <div>
       <SectionHeading
@@ -284,7 +284,7 @@ function FlashcardsSection({ kit }: { kit: Kit }) {
         title={`${kit.flashcards.length} prompts for active recall`}
         text="Use these for short review sessions. Answer the front aloud before checking the explanation."
       />
-      <FlashcardBuilder />
+      <FlashcardBuilder kitId={kitId} />
     </div>
   );
 }
@@ -376,7 +376,7 @@ function SectionContent({ section, kit, kitId }: { section: KitSection; kit: Kit
   if (section === 'brief') return <BriefSection kit={kit} kitId={kitId} />;
   if (section === 'role') return <RoleSection />;
   if (section === 'questions') return <QuestionsSection kit={kit} kitId={kitId} />;
-  if (section === 'flashcards') return <FlashcardsSection kit={kit} />;
+  if (section === 'flashcards') return <FlashcardsSection kit={kit} kitId={kitId} />;
   if (section === 'schedule') return <ScheduleSection kit={kit} />;
   return <CoverageSection kit={kit} />;
 }

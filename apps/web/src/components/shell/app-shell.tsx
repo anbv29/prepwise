@@ -7,12 +7,13 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, type ReactNode } from 'react';
 
 import { BrandMark } from '@/components/brand-mark';
-import { Skeleton } from '@/components/ui/skeleton';
+import { PracticeSkeleton, Skeleton } from '@/components/ui/skeleton';
 import { api } from '@/lib/api';
 
 export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const isPracticeMode = /^\/kits\/[^/]+\/practice\/?$/.test(pathname);
   const queryClient = useQueryClient();
   const userQuery = useQuery({ queryKey: ['current-user'], queryFn: api.getCurrentUser });
   const logout = useMutation({
@@ -30,6 +31,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [pathname, router, userQuery.data, userQuery.isLoading]);
 
   if (userQuery.isLoading || !userQuery.data) {
+    if (isPracticeMode) return <PracticeSkeleton />;
     return (
       <main className="mx-auto min-h-screen max-w-6xl px-5 py-8 sm:px-8">
         <div className="flex items-center justify-between border-b border-[var(--border)] pb-6">
@@ -43,6 +45,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       </main>
     );
   }
+
+  if (isPracticeMode) return children;
 
   return (
     <div className="min-h-screen bg-[var(--paper)]">

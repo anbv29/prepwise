@@ -201,3 +201,19 @@ user's work. Company-brief and question-category regeneration both show a change
 the user accepts it. All builder writes update the query cache optimistically and restore the
 previous record with an error toast if persistence fails. The mock API implements the complete
 flow, while the typed real client keeps the backend swap isolated to `apps/web/src/lib/api`.
+
+## Flashcard practice
+
+Each kit's flashcard page opens a distraction-free practice route. The card front can be revealed
+with a click, tap, Space, or Enter; arrow keys and horizontal swipes navigate the session. After
+revealing an answer, the user records one of four confidence levels. Progress is saved
+optimistically, and a failed write restores the previous result with a toast.
+
+The next session orders unseen cards first and then moves lower-confidence cards ahead of material
+the user already knows well. The mock client keeps demo practice progress in browser storage, while
+the real client exposes the same typed contract for persistent API-backed progress.
+
+## Delivery walkthrough
+
+See `DELIVERY.md` for the demo credentials, recommended evaluator walkthrough, final verification
+commands, and the configuration required to switch from fixtures to the live API.

@@ -3,6 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { motion } from 'motion/react';
+import Link from 'next/link';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -221,14 +222,22 @@ function AddFlashcardDialog() {
   );
 }
 
-export function FlashcardBuilder() {
+export function FlashcardBuilder({ kitId }: { kitId: string }) {
   const { kit } = useKitEditor();
   return (
     <div className="mt-8">
       {kit.flashcards.length ? (
         <>
           <div className="mb-6 flex justify-end">
-            <AddFlashcardDialog />
+            <div className="flex flex-wrap justify-end gap-3">
+              <Link
+                className="inline-flex min-h-11 items-center justify-center border border-[var(--border-strong)] px-5 font-semibold hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                href={`/kits/${kitId}/practice`}
+              >
+                Start practice
+              </Link>
+              <AddFlashcardDialog />
+            </div>
           </div>
           <div className="grid gap-px border border-[var(--border)] bg-[var(--border)] sm:grid-cols-2">
             {kit.flashcards.map((card, index) => (

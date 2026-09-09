@@ -1,4 +1,4 @@
-import type { Flashcard, PracticeProgress } from '@/types/kit';
+import type { Flashcard, PracticeProgress } from '../types/kit';
 
 export function orderFlashcardsForPractice(cards: Flashcard[], progress: PracticeProgress) {
   const confidence = new Map(

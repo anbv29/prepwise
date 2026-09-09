@@ -65,11 +65,7 @@ function readPracticeProgress(kitId: string): PracticeProgress {
   }
 }
 
-function writePracticeProgress(
-  kitId: string,
-  flashcardId: string,
-  confidence: PracticeConfidence,
-) {
+function writePracticeProgress(kitId: string, flashcardId: string, confidence: PracticeConfidence) {
   const previous = readPracticeProgress(kitId);
   const now = new Date().toISOString();
   const existing = previous.cards.find((card) => card.flashcardId === flashcardId);
@@ -80,10 +76,7 @@ function writePracticeProgress(
             ? { ...card, attempts: card.attempts + 1, confidence, lastPracticedAt: now }
             : card,
         )
-      : [
-          ...previous.cards,
-          { attempts: 1, confidence, flashcardId, lastPracticedAt: now },
-        ],
+      : [...previous.cards, { attempts: 1, confidence, flashcardId, lastPracticedAt: now }],
     kitId,
     updatedAt: now,
   };

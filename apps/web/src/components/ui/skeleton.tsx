@@ -103,3 +103,27 @@ export function KitDetailRouteSkeleton() {
     </div>
   );
 }
+
+export function PracticeSkeleton() {
+  return (
+    <main
+      aria-label="Loading flashcard practice"
+      className="grid min-h-screen place-items-center bg-[var(--paper)] px-5 py-10"
+      role="status"
+    >
+      <div className="w-full max-w-3xl">
+        <div className="flex items-center justify-between gap-5">
+          <Skeleton className="h-10 w-32" />
+          <Skeleton className="h-5 w-24" />
+        </div>
+        <Skeleton className="mt-10 h-2 w-full rounded-full" />
+        <Skeleton className="mt-8 h-[360px] w-full rounded-2xl" />
+        <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[0, 1, 2, 3].map((item) => (
+            <Skeleton className="h-12 w-full rounded-xl" key={item} />
+          ))}
+        </div>
+      </div>
+    </main>
+  );
+}

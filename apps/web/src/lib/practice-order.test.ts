@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { Flashcard, PracticeProgress } from '@/types/kit';
+import type { Flashcard, PracticeProgress } from '../types/kit';
 
 import { orderFlashcardsForPractice } from './practice-order';
 
@@ -16,8 +16,18 @@ describe('orderFlashcardsForPractice', () => {
       kitId: 'kit-1',
       updatedAt: '2026-09-09T10:00:00.000Z',
       cards: [
-        { flashcardId: 'easy', confidence: 4, attempts: 2, lastPracticedAt: '2026-09-09T10:00:00.000Z' },
-        { flashcardId: 'hard', confidence: 1, attempts: 1, lastPracticedAt: '2026-09-09T09:00:00.000Z' },
+        {
+          flashcardId: 'easy',
+          confidence: 4,
+          attempts: 2,
+          lastPracticedAt: '2026-09-09T10:00:00.000Z',
+        },
+        {
+          flashcardId: 'hard',
+          confidence: 1,
+          attempts: 1,
+          lastPracticedAt: '2026-09-09T09:00:00.000Z',
+        },
       ],
     };
 
