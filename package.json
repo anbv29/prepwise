@@ -11,10 +11,12 @@
     "node": ">=20"
   },
   "scripts": {
+    "predev": "npm run build:packages",
     "dev": "concurrently -n web,api -c cyan,green \"npm run dev --workspace @prep-kit/web\" \"npm run dev --workspace @prep-kit/api\"",
-    "build": "npm run build --workspace @prep-kit/contracts && npm run build --workspace @prep-kit/database && npm run build --workspace @prep-kit/pipeline && npm run build --workspace @prep-kit/api && npm run build --workspace @prep-kit/web",
+    "build:packages": "npm run build --workspace @prep-kit/contracts && npm run build --workspace @prep-kit/database && npm run build --workspace @prep-kit/pipeline",
+    "build": "npm run build:packages && npm run build --workspace @prep-kit/api && npm run build --workspace @prep-kit/web",
     "lint": "eslint .",
-    "typecheck": "npm run typecheck --workspace @prep-kit/contracts && npm run typecheck --workspace @prep-kit/database && npm run typecheck --workspace @prep-kit/pipeline && npm run typecheck --workspace @prep-kit/api && npm run typecheck --workspace @prep-kit/web",
+    "typecheck": "npm run typecheck --workspace @prep-kit/contracts && npm run typecheck --workspace @prep-kit/database && npm run typecheck --workspace @prep-kit/pipeline && npm run typecheck --workspace @prep-kit/api && npm run typecheck --workspace @prep-kit/web && tsc --noEmit -p tsconfig.tests.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "format": "prettier --write .",
