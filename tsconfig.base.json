@@ -4,6 +4,11 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    "paths": {
+      "@prep-kit/contracts": ["./packages/contracts/src/index.ts"],
+      "@prep-kit/database": ["./packages/database/src/index.ts"],
+      "@prep-kit/pipeline": ["./packages/pipeline/src/index.ts"]
+    },
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
