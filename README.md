@@ -118,3 +118,25 @@ For now, background execution calls the explicitly temporary scaffold generator 
 Step 5. This proves the complete asynchronous lifecycle without pretending that research has
 already happened. The later research and LLM steps will replace that injected generator while
 keeping the same queue, progress, retry, and polling infrastructure.
+
+## Secure research
+
+`packages/pipeline/src/research` contains the bounded research layer. Company URLs are limited
+to HTTP(S), reject credentials and unusual ports, resolve through public IP checks, and are
+validated again at connection time to prevent DNS rebinding into loopback, private, link-local,
+metadata, documentation, multicast, or reserved address ranges. Every redirect repeats the
+same checks. The private-network escape hatch is limited to local development and is rejected
+when `NODE_ENV=production`.
+
+Responses have time, redirect, byte, content-type, page-count, and extracted-text limits. The
+crawler honors robots.txt where available, follows only useful same-origin HTML pages, strips
+scripts and layout noise, and returns plain text with source URLs, titles, truncation flags, and
+recoverable warnings. MongoDB caching stores successful pages for a day by default and failed
+requests briefly to avoid repeatedly hitting unavailable targets.
+
+Public interview signals are obtained through the server-side Brave Search adapter using
+separate site-restricted Reddit and Glassdoor queries. API responses are runtime validated;
+only genuine HTTPS hosts are accepted, markup is removed from snippets, URLs are deduplicated,
+and every signal retains its source query and URL. Configure it with `BRAVE_SEARCH_API_KEY`.
+The crawler, discussion search, and cache are intentionally not connected to the scaffold
+generator yet; Steps 10–12 assemble them with structured LLM generation.
