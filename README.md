@@ -139,7 +139,7 @@ separate site-restricted Reddit and Glassdoor queries. API responses are runtime
 only genuine HTTPS hosts are accepted, markup is removed from snippets, URLs are deduplicated,
 and every signal retains its source query and URL. Configure it with `BRAVE_SEARCH_API_KEY`.
 The crawler, discussion search, and cache are intentionally not connected to the scaffold
-generator yet; Steps 10–12 assemble them with structured LLM generation.
+generator yet; Step 12 will assemble them with the completed structured-generation stages.
 
 ## Structured LLM and requirement extraction
 
@@ -155,6 +155,21 @@ behavioural, or domain requirements from the job description. The job descriptio
 JSON-encoded untrusted data under higher-priority instructions that forbid following commands
 inside it. Application code then normalizes and deduplicates results, promotes conflicting
 must-have priority, assigns deterministic `req-001` identifiers, checks evidence against the
-original description, and validates the final role with the shared Appendix A contract. The
-provider and extractor are not connected to the worker until the remaining kit-generation
-stages are implemented.
+original description, and validates the final role with the shared Appendix A contract.
+
+## Grounded kit-section generation
+
+The remaining model stages generate the company brief, interview questions with answer
+outlines, and active-recall flashcards. Company pages and public discussion snippets remain
+JSON-encoded untrusted data. Company citations are model-selected opaque source IDs that
+application code maps back to the crawled URL allowlist, so an invented citation cannot enter
+the kit. No available company pages produces an explicit no-research fallback instead of an
+invented brief.
+
+Question and flashcard identifiers are assigned deterministically by application code. Unknown
+requirement references and duplicate content are removed. After each initial generation, code
+checks every must-have requirement and makes one narrowly targeted repair request for any gaps;
+if the repair still misses a must-have, generation fails rather than producing a misleadingly
+complete kit. Every model call records its stage, response ID, model, and token usage. Step 12
+will connect these stages to research, scheduling, persistence, progress updates, and the batch
+evaluator.
