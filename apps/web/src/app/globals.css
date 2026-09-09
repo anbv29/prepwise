@@ -2,15 +2,133 @@
 
 :root {
   color-scheme: light;
-  font-family: Arial, Helvetica, sans-serif;
-  background: #f8fafc;
-  color: #0f172a;
+  --paper: #fafaf9;
+  --surface: #ffffff;
+  --surface-subtle: #f4f4f3;
+  --ink: #16161b;
+  --muted: #68686f;
+  --border: #dededf;
+  --border-strong: #b7b7bb;
+  --accent: #4f46e5;
+  --accent-soft: #eeedff;
+  --success: #15803d;
+  --success-soft: #eaf7ef;
+  --warning: #b45309;
+  --warning-soft: #fff6e7;
+  --danger: #dc2626;
+  --danger-soft: #fff0f0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --paper: #0e0e12;
+    --surface: #18181d;
+    --surface-subtle: #202026;
+    --ink: #f4f4f5;
+    --muted: #a1a1aa;
+    --border: #303038;
+    --border-strong: #52525b;
+    --accent: #818cf8;
+    --accent-soft: #282747;
+    --success: #4ade80;
+    --success-soft: #153524;
+    --warning: #fbbf24;
+    --warning-soft: #3a2b12;
+    --danger: #fb7185;
+    --danger-soft: #421d26;
+  }
 }
 
 * {
   box-sizing: border-box;
 }
 
+html {
+  background: var(--paper);
+  scroll-behavior: smooth;
+  scroll-padding-top: 5.5rem;
+}
+
 body {
+  min-width: 320px;
   margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-geist), 'Geist Sans', Arial, sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button:not(:disabled),
+[role='button']:not([aria-disabled='true']) {
+  cursor: pointer;
+}
+
+.app-header {
+  background: color-mix(in srgb, var(--paper) 92%, transparent);
+  backdrop-filter: blur(14px);
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 68%, transparent);
+  outline-offset: 3px;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+.surface-shadow {
+  box-shadow:
+    0 1px 2px rgb(22 22 27 / 0.04),
+    0 12px 28px rgb(22 22 27 / 0.05);
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--surface-subtle) 25%,
+    color-mix(in srgb, var(--surface-subtle) 60%, var(--surface)) 50%,
+    var(--surface-subtle) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shift 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-shift {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
