@@ -1,5 +1,6 @@
 export * from './batch-evaluation.js';
 export * from './coverage.js';
+export * from './full-generator.js';
 export * from './llm/config.js';
 export * from './llm/company-brief-generation.js';
 export * from './llm/flashcard-generation.js';

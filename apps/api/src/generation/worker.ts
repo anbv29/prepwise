@@ -5,6 +5,7 @@ import type {
   GenerationProgress,
   GenerationStage,
   KitRepository,
+  ResearchWarning,
 } from '@prep-kit/database';
 import type { KitGenerator } from '@prep-kit/pipeline';
 
@@ -42,10 +43,26 @@ function normalizeGenerationError(error: unknown): GenerationError {
   }
 
   if (error instanceof Error) {
+    const structured = error as Error & { code?: unknown; retryable?: unknown };
+
+    if (typeof structured.code === 'string' && typeof structured.retryable === 'boolean') {
+      return {
+        code: structured.code,
+        message: structured.message || 'Kit generation failed.',
+        retryable: structured.retryable,
+      };
+    }
+
+    const retryableInfrastructureError = [
+      'MongoNetworkError',
+      'MongoNetworkTimeoutError',
+      'MongoServerSelectionError',
+    ].includes(error.name);
+
     return {
-      code: 'GENERATION_FAILED',
+      code: retryableInfrastructureError ? 'INFRASTRUCTURE_UNAVAILABLE' : 'GENERATION_FAILED',
       message: error.message || 'Kit generation failed.',
-      retryable: false,
+      retryable: retryableInfrastructureError,
     };
   }
 
@@ -154,6 +171,9 @@ export class GenerationWorker {
   }
 
   private async process(job: GenerationJobDocument) {
+    let latestProgressPercent = job.progressPercent;
+    const warnings: ResearchWarning[] = [];
+
     try {
       const kitDocument = await this.repositories.kits.findOwnedById(job.ownerId, job.kitId);
 
@@ -172,17 +192,20 @@ export class GenerationWorker {
       });
       const generatedKit = await this.generateKit(kitDocument.input, {
         researchedAt: this.clock().toISOString(),
-      });
-      await this.report(job, {
-        stage: 'validating',
-        percent: 90,
-        message: 'Validating the generated kit.',
+        onProgress: async (progress) => {
+          await this.report(job, progress);
+          latestProgressPercent = progress.percent;
+        },
+        onWarnings: (reportedWarnings) => {
+          warnings.splice(0, warnings.length, ...reportedWarnings);
+        },
       });
 
       const kitSaved = await this.repositories.kits.saveGeneratedKit(
         job.ownerId,
         job.kitId,
         generatedKit,
+        warnings,
       );
 
       if (!kitSaved) {
@@ -203,7 +226,7 @@ export class GenerationWorker {
       await this.repositories.generationJobs.fail(job.ownerId, job._id, normalized);
       await this.repositories.kits.updateProgress(job.ownerId, job.kitId, 'failed', {
         stage: 'failed',
-        percent: job.progressPercent,
+        percent: latestProgressPercent,
         message: normalized.message,
       });
     }

@@ -14,7 +14,31 @@ export interface KitGenerationInput {
 }
 
 export interface KitGenerationContext {
+  onProgress?: (progress: KitGenerationProgress) => Promise<void> | void;
+  onWarnings?: (warnings: readonly KitGenerationWarning[]) => Promise<void> | void;
   researchedAt: string;
+}
+
+export type KitGenerationStage =
+  | 'researching_company'
+  | 'searching_discussions'
+  | 'generating_company_brief'
+  | 'generating_questions'
+  | 'checking_coverage'
+  | 'generating_flashcards'
+  | 'building_schedule'
+  | 'validating';
+
+export interface KitGenerationProgress {
+  message: string;
+  percent: number;
+  stage: KitGenerationStage;
+}
+
+export interface KitGenerationWarning {
+  code: string;
+  message: string;
+  sourceUrl?: string;
 }
 
 export type KitGenerator = (

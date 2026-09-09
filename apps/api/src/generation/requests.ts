@@ -152,6 +152,16 @@ export class GenerationRequestService {
       throw new GenerationRetryUnavailableError();
     }
 
+    const kitQueued = await this.kits.updateProgress(ownerId, retried.kitId, 'queued', {
+      stage: 'queued',
+      percent: 0,
+      message: 'Waiting for a generation retry.',
+    });
+
+    if (!kitQueued) {
+      throw new Error('The kit belonging to this retry could not be requeued.');
+    }
+
     return retried;
   }
 

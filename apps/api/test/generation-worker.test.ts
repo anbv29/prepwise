@@ -98,7 +98,14 @@ describe('GenerationWorker', () => {
 
     await expect(worker.runOnce()).resolves.toBe(true);
 
-    expect(generateKit).toHaveBeenCalledWith(kit.input, { researchedAt: NOW.toISOString() });
+    expect(generateKit).toHaveBeenCalledWith(
+      kit.input,
+      expect.objectContaining({
+        researchedAt: NOW.toISOString(),
+        onProgress: expect.any(Function),
+        onWarnings: expect.any(Function),
+      }),
+    );
     expect(repositories.generationJobs.updateProgress).toHaveBeenNthCalledWith(
       1,
       job.ownerId,
@@ -106,17 +113,11 @@ describe('GenerationWorker', () => {
       'extracting_requirements',
       5,
     );
-    expect(repositories.generationJobs.updateProgress).toHaveBeenNthCalledWith(
-      2,
-      job.ownerId,
-      job._id,
-      'validating',
-      90,
-    );
     expect(repositories.kits.saveGeneratedKit).toHaveBeenCalledWith(
       job.ownerId,
       job.kitId,
       generatedKit,
+      [],
     );
     expect(repositories.generationJobs.complete).toHaveBeenCalledWith(job.ownerId, job._id);
     expect(repositories.generationJobs.fail).not.toHaveBeenCalled();
@@ -144,6 +145,84 @@ describe('GenerationWorker', () => {
         percent: 5,
         message: 'Research timed out.',
       },
+    );
+  });
+
+  it('preserves provider retryability and the latest reported progress on failure', async () => {
+    const providerError = Object.assign(
+      new Error('The language model is temporarily unavailable.'),
+      {
+        code: 'LLM_TEMPORARILY_UNAVAILABLE',
+        retryable: true,
+      },
+    );
+    const generateKit = vi.fn(async (_input, context) => {
+      await context.onProgress?.({
+        stage: 'generating_questions',
+        percent: 55,
+        message: 'Generating interview questions.',
+      });
+      throw providerError;
+    });
+    const worker = new GenerationWorker(repositories, generateKit, CONFIG, () => NOW);
+
+    await worker.runOnce();
+
+    expect(repositories.generationJobs.fail).toHaveBeenCalledWith(job.ownerId, job._id, {
+      code: 'LLM_TEMPORARILY_UNAVAILABLE',
+      message: 'The language model is temporarily unavailable.',
+      retryable: true,
+    });
+    expect(repositories.kits.updateProgress).toHaveBeenLastCalledWith(
+      job.ownerId,
+      job.kitId,
+      'failed',
+      {
+        stage: 'failed',
+        percent: 55,
+        message: 'The language model is temporarily unavailable.',
+      },
+    );
+  });
+
+  it('forwards pipeline progress and warnings into persistent records', async () => {
+    const generatedKit = createValidKit();
+    const generateKit = vi.fn(async (_input, context) => {
+      await context.onProgress?.({
+        stage: 'researching_company',
+        percent: 18,
+        message: 'Researching the company website.',
+      });
+      await context.onWarnings?.([
+        {
+          code: 'ROBOTS_UNAVAILABLE',
+          message: 'robots.txt could not be loaded.',
+          sourceUrl: 'https://example.com/robots.txt',
+        },
+      ]);
+      return generatedKit;
+    });
+    const worker = new GenerationWorker(repositories, generateKit, CONFIG, () => NOW);
+
+    await worker.runOnce();
+
+    expect(repositories.generationJobs.updateProgress).toHaveBeenLastCalledWith(
+      job.ownerId,
+      job._id,
+      'researching_company',
+      18,
+    );
+    expect(repositories.kits.saveGeneratedKit).toHaveBeenCalledWith(
+      job.ownerId,
+      job.kitId,
+      generatedKit,
+      [
+        {
+          code: 'ROBOTS_UNAVAILABLE',
+          message: 'robots.txt could not be loaded.',
+          sourceUrl: 'https://example.com/robots.txt',
+        },
+      ],
     );
   });
 

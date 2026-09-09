@@ -1,11 +1,18 @@
+import 'dotenv/config';
+
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { BatchInputSchema, type BatchOutput } from '@prep-kit/contracts';
 import {
-  createScaffoldKit,
+  BraveDiscussionSearchProvider,
+  createFullKitGenerator,
   evaluateBatch,
+  OpenAiStructuredLlmProvider,
+  readBraveSearchConfig,
+  readOpenAiLlmConfig,
+  readResearchConfig,
   type EvaluateBatchOptions,
   type KitGenerator,
 } from '@prep-kit/pipeline';
@@ -97,6 +104,26 @@ export interface RunEvaluateOptions extends EvaluateBatchOptions {
   generateKit?: KitGenerator;
 }
 
+export function createEnvironmentKitGenerator(
+  environment: Record<string, string | undefined> = process.env,
+) {
+  const researchConfig = readResearchConfig(environment);
+  const provider = new OpenAiStructuredLlmProvider(readOpenAiLlmConfig(environment));
+  const hasDiscussionSearchKey = Boolean(
+    environment.BRAVE_SEARCH_API_KEY?.trim() || environment.SEARCH_API_KEY?.trim(),
+  );
+
+  return createFullKitGenerator({
+    provider,
+    researchConfig,
+    ...(hasDiscussionSearchKey
+      ? {
+          discussionProvider: new BraveDiscussionSearchProvider(readBraveSearchConfig(environment)),
+        }
+      : {}),
+  });
+}
+
 export async function runEvaluate(
   rawArguments: readonly string[],
   options: RunEvaluateOptions = {},
@@ -124,7 +151,7 @@ export async function runEvaluate(
   const batchOptions: EvaluateBatchOptions = options.now === undefined ? {} : { now: options.now };
   const output = await evaluateBatch(
     parsedInput.data,
-    options.generateKit ?? createScaffoldKit,
+    options.generateKit ?? createEnvironmentKitGenerator(),
     batchOptions,
   );
 

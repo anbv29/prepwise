@@ -46,10 +46,11 @@ pipeline package, continues after individual generation failures, validates succ
 and writes one Appendix B output file. Shared packages are compiled automatically before the
 command runs, so no separate build command is required.
 
-The current evaluator uses an explicitly temporary scaffold generator. It produces honest,
-schema-valid `research pending` kits with exact schedule lengths so the command and failure
-boundaries can be tested before retrieval and LLM generation are connected. The scaffold
-generator will be replaced by the real shared generator in the pipeline implementation steps.
+The evaluator now uses the same production generator as the API worker while remaining
+independent from MongoDB. It reads OpenAI, optional Brave Search, and research safety settings
+from `.env`, runs real bounded research and structured generation, and records an individual
+failure without preventing later cases from running. Tests can still inject the deterministic
+scaffold generator without making network or paid model requests.
 
 ## Contract validation
 
@@ -114,10 +115,13 @@ and kits move together through queued, generating, complete, or failed states. T
 recovers interrupted jobs after `WORKER_STALE_AFTER_MS`, enforces `WORKER_MAX_ATTEMPTS`, drains
 cleanly during shutdown, and polls at `WORKER_POLL_INTERVAL_MS`.
 
-For now, background execution calls the explicitly temporary scaffold generator established in
-Step 5. This proves the complete asynchronous lifecycle without pretending that research has
-already happened. The later research and LLM steps will replace that injected generator while
-keeping the same queue, progress, retry, and polling infrastructure.
+Background execution now calls the complete production generator. Progress is persisted through
+requirement extraction, company research, discussion search, company-brief generation, question
+generation and coverage repair, flashcards, scheduling, and final validation. Research and
+generation warnings are stored with the kit, while provider response IDs, model names, token
+usage, and stage names are retained in the kit source metadata. Retryable provider and MongoDB
+infrastructure failures remain distinguishable from permanent validation failures. Retrying a
+job also moves its kit back to the queued state so both records stay synchronized.
 
 ## Secure research
 
@@ -138,8 +142,10 @@ Public interview signals are obtained through the server-side Brave Search adapt
 separate site-restricted Reddit and Glassdoor queries. API responses are runtime validated;
 only genuine HTTPS hosts are accepted, markup is removed from snippets, URLs are deduplicated,
 and every signal retains its source query and URL. Configure it with `BRAVE_SEARCH_API_KEY`.
-The crawler, discussion search, and cache are intentionally not connected to the scaffold
-generator yet; Step 12 will assemble them with the completed structured-generation stages.
+The API worker runs company requests through the MongoDB cache before crawling. Discussion
+search is optional: when `BRAVE_SEARCH_API_KEY` is missing or a research source is unavailable,
+the generator records a warning and continues with an explicit limited-research fallback rather
+than inventing material.
 
 ## Structured LLM and requirement extraction
 
@@ -170,6 +176,14 @@ Question and flashcard identifiers are assigned deterministically by application
 requirement references and duplicate content are removed. After each initial generation, code
 checks every must-have requirement and makes one narrowly targeted repair request for any gaps;
 if the repair still misses a must-have, generation fails rather than producing a misleadingly
-complete kit. Every model call records its stage, response ID, model, and token usage. Step 12
-will connect these stages to research, scheduling, persistence, progress updates, and the batch
-evaluator.
+complete kit. Every model call records its stage, response ID, model, and token usage.
+
+## Complete generation pipeline
+
+`packages/pipeline/src/full-generator.ts` is the shared API and batch composition root. It
+extracts the role and location, performs bounded company and optional discussion research,
+generates all grounded sections, runs deterministic coverage and schedule construction, and
+validates the final Appendix A object before returning it. Company and discussion research run
+concurrently after role extraction, while dependent model stages remain ordered. The API adds
+MongoDB-backed fetch caching and persistent progress/warning callbacks; the evaluator invokes
+the same generator directly without requiring a database.

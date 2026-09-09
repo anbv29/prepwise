@@ -18,6 +18,7 @@ const extractedRequirementSchema = z.object({
 });
 
 export const JobDescriptionAnalysisSchema = z.object({
+  location: z.string().max(200),
   requirements: z.array(extractedRequirementSchema).min(1).max(30),
   responsibilities: z.array(z.string().min(2).max(500)).max(15),
   seniority: z.string().min(1).max(80),
@@ -28,6 +29,7 @@ export type JobDescriptionAnalysis = z.infer<typeof JobDescriptionAnalysisSchema
 
 export interface RequirementExtractionResult {
   evidenceByRequirementId: Record<string, string>;
+  location: string;
   metadata: LlmGenerationMetadata;
   role: Role;
   warnings: string[];
@@ -57,7 +59,8 @@ Extraction rules:
 - Keep each requirement atomic so a question can cover it directly.
 - Include a short evidence fragment for every requirement.
 - Deduplicate repeated ideas.
-- If title or seniority is absent, use "Unspecified role" or "unspecified".`;
+- Extract the role location when stated, including remote or hybrid wording.
+- If title, seniority, or location is absent, use "Unspecified role", "unspecified", or an empty location.`;
 
 function normalizeText(value: string) {
   return value.replace(/\s+/gu, ' ').trim();
@@ -182,6 +185,7 @@ export async function extractRoleRequirements(
 
   return {
     evidenceByRequirementId,
+    location: normalizeText(analysis.location),
     metadata: generated.metadata,
     role,
     warnings,

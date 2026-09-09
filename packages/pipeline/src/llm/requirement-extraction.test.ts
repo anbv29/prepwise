@@ -16,6 +16,7 @@ import {
 const analysis: JobDescriptionAnalysis = {
   title: ' Senior Platform Engineer ',
   seniority: 'senior',
+  location: ' Remote, India ',
   responsibilities: ['Build reliable APIs', ' Build reliable APIs ', 'Mentor engineers'],
   requirements: [
     {
@@ -104,6 +105,7 @@ describe('extractRoleRequirements', () => {
       'req-002': 'Work with product and design partners',
       'req-003': 'Payments experience is a plus',
     });
+    expect(result.location).toBe('Remote, India');
     expect(result.warnings).toEqual(['Duplicate extracted requirement was merged: typescript']);
   });
 

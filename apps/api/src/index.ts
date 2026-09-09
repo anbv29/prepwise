@@ -5,12 +5,21 @@ import {
   createDatabaseRepositories,
   readDatabaseConfig,
 } from '@prep-kit/database';
-import { createScaffoldKit } from '@prep-kit/pipeline';
+import {
+  BraveDiscussionSearchProvider,
+  createFullKitGenerator,
+  OpenAiStructuredLlmProvider,
+  readBraveSearchConfig,
+  readOpenAiLlmConfig,
+  readResearchConfig,
+  safeFetchText,
+} from '@prep-kit/pipeline';
 
 import { createApp } from './app.js';
 import { readAuthConfig } from './auth/config.js';
 import { AuthService } from './auth/service.js';
 import { readWorkerConfig } from './generation/config.js';
+import { CachedResearchFetcher } from './generation/research-cache.js';
 import { GenerationRequestService } from './generation/requests.js';
 import { GenerationWorker } from './generation/worker.js';
 
@@ -22,6 +31,24 @@ async function startServer() {
   const repositories = createDatabaseRepositories(databaseConnection.database);
   const authConfig = readAuthConfig();
   const workerConfig = readWorkerConfig();
+  const researchConfig = readResearchConfig();
+  const llmProvider = new OpenAiStructuredLlmProvider(readOpenAiLlmConfig());
+  const cachedResearch = new CachedResearchFetcher(
+    repositories.researchCache,
+    (url) => safeFetchText(url, researchConfig),
+    researchConfig,
+  );
+  const hasDiscussionSearchKey = Boolean(
+    process.env.BRAVE_SEARCH_API_KEY?.trim() || process.env.SEARCH_API_KEY?.trim(),
+  );
+  const generateKit = createFullKitGenerator({
+    provider: llmProvider,
+    researchConfig,
+    fetchText: (url) => cachedResearch.fetch(url),
+    ...(hasDiscussionSearchKey
+      ? { discussionProvider: new BraveDiscussionSearchProvider(readBraveSearchConfig()) }
+      : {}),
+  });
   const authService = new AuthService(
     repositories.users,
     repositories.sessions,
@@ -32,7 +59,7 @@ async function startServer() {
     repositories.generationJobs,
     workerConfig.maxAttempts,
   );
-  const generationWorker = new GenerationWorker(repositories, createScaffoldKit, workerConfig);
+  const generationWorker = new GenerationWorker(repositories, generateKit, workerConfig);
   const app = createApp({ authConfig, authService, generationRequests, repositories });
   const server = app.listen(port, () => {
     console.log(`API listening on http://localhost:${port}`);

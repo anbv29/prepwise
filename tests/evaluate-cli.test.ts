@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { BatchOutputSchema } from '@prep-kit/contracts';
+import { createScaffoldKit } from '@prep-kit/pipeline';
 
 import { EvaluateCliError, parseEvaluateArguments, runEvaluate } from '../scripts/evaluate.js';
 
@@ -69,6 +70,7 @@ describe('runEvaluate', () => {
     );
 
     const result = await runEvaluate(['--input', inputPath, '--output', outputPath], {
+      generateKit: createScaffoldKit,
       now: () => new Date('2026-09-09T08:00:00.000Z'),
     });
     const writtenOutput: unknown = JSON.parse(await readFile(outputPath, 'utf8'));

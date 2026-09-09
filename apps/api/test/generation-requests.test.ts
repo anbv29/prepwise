@@ -176,5 +176,10 @@ describe('GenerationRequestService', () => {
     retryOwned.mockResolvedValue(retriedJob);
     await expect(service.retry(OWNER_ID, job._id)).resolves.toBe(retriedJob);
     expect(retryOwned).toHaveBeenLastCalledWith(OWNER_ID, job._id, 3);
+    expect(updateKitProgress).toHaveBeenLastCalledWith(OWNER_ID, job.kitId, 'queued', {
+      stage: 'queued',
+      percent: 0,
+      message: 'Waiting for a generation retry.',
+    });
   });
 });
