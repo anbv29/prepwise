@@ -1,4 +1,6 @@
-export function createValidKit() {
+import type { Kit } from '@prep-kit/contracts';
+
+export function createValidKit(): Kit {
   return {
     source: {
       company: 'Example Labs',

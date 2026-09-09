@@ -1,0 +1,14 @@
+[
+  {
+    "id": "case-01",
+    "jd": "Senior Backend Engineer\n\nBuild reliable TypeScript APIs and mentor engineers.",
+    "company_url": "http://localhost:8099/acme/",
+    "days": 5
+  },
+  {
+    "id": "case-02",
+    "jd": "Frontend Engineer\n\nBuild accessible React interfaces.",
+    "company_url": "https://example.com/",
+    "days": 2
+  }
+]

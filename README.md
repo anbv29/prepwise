@@ -30,10 +30,22 @@ npm run lint
 npm run typecheck
 npm test
 npm run build
+npm run evaluate -- --input <cases.json> --output <kits.json>
 ```
 
 Copy `.env.example` to `.env` before running services that require external configuration.
-The exact batch evaluation command will be added in its dedicated implementation step.
+
+## Batch evaluation
+
+The mandatory evaluator validates Appendix B input, processes every case through the shared
+pipeline package, continues after individual generation failures, validates successful kits,
+and writes one Appendix B output file. Shared packages are compiled automatically before the
+command runs, so no separate build command is required.
+
+The current evaluator uses an explicitly temporary scaffold generator. It produces honest,
+schema-valid `research pending` kits with exact schedule lengths so the command and failure
+boundaries can be tested before retrieval and LLM generation are connected. The scaffold
+generator will be replaced by the real shared generator in the pipeline implementation steps.
 
 ## Contract validation
 
