@@ -140,3 +140,21 @@ only genuine HTTPS hosts are accepted, markup is removed from snippets, URLs are
 and every signal retains its source query and URL. Configure it with `BRAVE_SEARCH_API_KEY`.
 The crawler, discussion search, and cache are intentionally not connected to the scaffold
 generator yet; Steps 10–12 assemble them with structured LLM generation.
+
+## Structured LLM and requirement extraction
+
+`packages/pipeline/src/llm` defines a provider-neutral structured-generation contract and an
+OpenAI Responses API implementation. The adapter uses strict Zod Structured Outputs, disables
+provider-side response storage, records response/model/token metadata, applies explicit request
+timeouts, and retries only transient connection, throttling, conflict, or server failures with
+bounded exponential backoff. API keys remain server-side. Set `OPENAI_API_KEY` and an explicit
+`OPENAI_MODEL`; generic `LLM_API_KEY` and `LLM_MODEL` names remain supported.
+
+The first model stage extracts role title, seniority, responsibilities, and atomic technical,
+behavioural, or domain requirements from the job description. The job description is passed as
+JSON-encoded untrusted data under higher-priority instructions that forbid following commands
+inside it. Application code then normalizes and deduplicates results, promotes conflicting
+must-have priority, assigns deterministic `req-001` identifiers, checks evidence against the
+original description, and validates the final role with the shared Appendix A contract. The
+provider and extractor are not connected to the worker until the remaining kit-generation
+stages are implemented.
