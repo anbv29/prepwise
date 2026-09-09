@@ -5,10 +5,15 @@ import { AppShell } from '@/components/shell/app-shell';
 
 export const metadata: Metadata = { title: 'New kit' };
 
-export default function NewKitPage() {
+export default async function NewKitPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mode?: string }>;
+}) {
+  const { mode } = await searchParams;
   return (
     <AppShell>
-      <NewKitForm />
+      <NewKitForm initialMode={mode === 'batch' ? 'batch' : 'single'} />
     </AppShell>
   );
 }

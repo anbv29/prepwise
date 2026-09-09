@@ -100,11 +100,11 @@ async function rowsFromFile(file: File) {
   );
 }
 
-export function NewKitForm() {
+export function NewKitForm({ initialMode = 'single' }: { initialMode?: 'single' | 'batch' }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const fileInput = useRef<HTMLInputElement>(null);
-  const [mode, setMode] = useState('single');
+  const [mode, setMode] = useState(initialMode);
   const [batchRows, setBatchRows] = useState<BatchPreviewRow[]>([]);
   const [fileName, setFileName] = useState('');
   const form = useForm<SingleForm>({
@@ -168,7 +168,13 @@ export function NewKitForm() {
         </p>
       </div>
 
-      <Tabs className="pt-8" onValueChange={setMode} value={mode}>
+      <Tabs
+        className="pt-8"
+        onValueChange={(value) => {
+          if (value === 'single' || value === 'batch') setMode(value);
+        }}
+        value={mode}
+      >
         <TabsList aria-label="Kit creation mode">
           <TabsTrigger value="single">Single role</TabsTrigger>
           <TabsTrigger value="batch">Batch upload</TabsTrigger>

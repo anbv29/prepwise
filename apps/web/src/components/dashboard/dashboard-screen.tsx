@@ -1,7 +1,15 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRight, CalendarDays, Plus, TriangleAlert } from 'lucide-react';
+import {
+  ArrowRight,
+  BookOpenCheck,
+  CalendarDays,
+  FileText,
+  Files,
+  Plus,
+  TriangleAlert,
+} from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import Link from 'next/link';
 
@@ -99,7 +107,7 @@ function KitRow({ record }: { record: KitRecord }) {
             if (record.status === 'queued' || record.status === 'generating') {
               void import('@/components/generation/generation-stepper');
             } else {
-              void import('@/components/kit-detail/kit-detail-screen');
+              void import('@/components/kit-detail/kit-section-screen');
             }
           }}
         >
@@ -113,14 +121,31 @@ function KitRow({ record }: { record: KitRecord }) {
 export function DashboardScreen() {
   const reducedMotion = useReducedMotion();
   const kits = useQuery({ queryKey: ['kits'], queryFn: api.listKits });
+  const readyKits = kits.data?.filter((kit) => kit.status === 'ready') ?? [];
+  const averageCoverage =
+    readyKits.length === 0
+      ? 0
+      : Math.round(
+          readyKits.reduce((total, record) => {
+            const requirements = record.kit?.role.requirements.length ?? 0;
+            const uncovered = record.kit?.coverage.uncovered_requirement_ids.length ?? 0;
+            return (
+              total + (requirements === 0 ? 100 : ((requirements - uncovered) / requirements) * 100)
+            );
+          }, 0) / readyKits.length,
+        );
+  const latestReadyKit = readyKits[0];
 
   return (
     <main className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
       <div className="flex flex-col gap-6 border-b border-[var(--border)] pb-9 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">Interview kits</h1>
+          <h1 className="text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">
+            Preparation workspace
+          </h1>
           <p className="mt-3 max-w-2xl text-[var(--muted)]">
-            Pick up where you left off or prepare for another role.
+            Create role-specific kits, review research, practise questions, and keep every job
+            requirement covered.
           </p>
         </div>
         <Link
@@ -131,7 +156,85 @@ export function DashboardScreen() {
         </Link>
       </div>
 
-      <section className="pt-8" aria-labelledby="kit-list-heading">
+      <section aria-labelledby="tools-heading" className="pt-8">
+        <div className="flex items-end justify-between gap-5">
+          <div>
+            <p className="text-sm font-semibold text-[var(--accent)]">Your tools</p>
+            <h2 className="mt-1 text-xl font-semibold" id="tools-heading">
+              Choose how you want to prepare
+            </h2>
+          </div>
+          {kits.data ? (
+            <div className="hidden gap-6 text-right sm:flex">
+              <div>
+                <p className="text-lg font-semibold tabular-nums">{readyKits.length}</p>
+                <p className="text-xs text-[var(--muted)]">Ready kits</p>
+              </div>
+              <div>
+                <p className="text-lg font-semibold tabular-nums">{averageCoverage}%</p>
+                <p className="text-xs text-[var(--muted)]">Average coverage</p>
+              </div>
+            </div>
+          ) : null}
+        </div>
+        <div className="mt-5 grid gap-px border border-[var(--border)] bg-[var(--border)] md:grid-cols-3">
+          <Link
+            className="group bg-[var(--surface)] p-5 hover:bg-[var(--surface-subtle)]"
+            href="/kits/new"
+          >
+            <FileText className="text-[var(--accent)]" size={20} />
+            <h3 className="mt-6 font-semibold">Prepare one role</h3>
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              Paste one job description and build a complete, focused interview kit.
+            </p>
+            <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[var(--accent)]">
+              Start a kit{' '}
+              <ArrowRight className="transition-transform group-hover:translate-x-1" size={15} />
+            </span>
+          </Link>
+          <Link
+            className="group bg-[var(--surface)] p-5 hover:bg-[var(--surface-subtle)]"
+            href="/kits/new?mode=batch"
+          >
+            <Files className="text-[var(--accent)]" size={20} />
+            <h3 className="mt-6 font-semibold">Upload several roles</h3>
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              Add a CSV or JSON file and validate every role before generation begins.
+            </p>
+            <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[var(--accent)]">
+              Open batch upload{' '}
+              <ArrowRight className="transition-transform group-hover:translate-x-1" size={15} />
+            </span>
+          </Link>
+          {latestReadyKit ? (
+            <Link
+              className="group bg-[var(--surface)] p-5 hover:bg-[var(--surface-subtle)]"
+              href={`/kits/${latestReadyKit.id}`}
+            >
+              <BookOpenCheck className="text-[var(--accent)]" size={20} />
+              <h3 className="mt-6 font-semibold">Continue your latest kit</h3>
+              <p className="mt-2 text-sm text-[var(--muted)]">
+                Review its sections, see coverage, and continue your preparation plan.
+              </p>
+              <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[var(--accent)]">
+                Open overview{' '}
+                <ArrowRight className="transition-transform group-hover:translate-x-1" size={15} />
+              </span>
+            </Link>
+          ) : (
+            <div className="bg-[var(--surface)] p-5">
+              <BookOpenCheck className="text-[var(--muted)]" size={20} />
+              <h3 className="mt-6 font-semibold">Review generated results</h3>
+              <p className="mt-2 text-sm text-[var(--muted)]">
+                Company research, questions, cards, schedule, and coverage each get a dedicated
+                page.
+              </p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="pt-12" aria-labelledby="kit-list-heading">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-semibold" id="kit-list-heading">
             Your preparation

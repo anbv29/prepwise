@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { LogOut } from 'lucide-react';
+import { House, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, type ReactNode } from 'react';
@@ -58,6 +58,14 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span className="hidden max-w-56 truncate text-sm text-[var(--muted)] sm:block">
               {userQuery.data.email}
             </span>
+            <Link
+              aria-label="Return to main site"
+              className="inline-flex h-10 items-center gap-2 rounded-lg border border-[var(--border)] px-3 text-sm font-semibold text-[var(--muted)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--ink)]"
+              href="/"
+            >
+              <House size={16} />
+              <span className="hidden md:inline">Main site</span>
+            </Link>
             <button
               aria-label="Sign out"
               className="grid h-10 w-10 place-items-center rounded-lg text-[var(--muted)] transition-colors hover:bg-[var(--surface-subtle)] hover:text-[var(--ink)]"

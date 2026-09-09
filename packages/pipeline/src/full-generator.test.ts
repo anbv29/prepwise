@@ -61,6 +61,14 @@ const questionDraft = {
       prompt: 'How would you design a reliable TypeScript payment-processing API?',
       requirement_ids: ['req-001', 'req-002'],
     },
+    ...Array.from({ length: 15 }, (_, index) => ({
+      answer_outline:
+        'Cover requirements, boundaries, alternatives, failure handling, observability, and the decision tradeoffs.',
+      category: 'technical',
+      difficulty: 2,
+      prompt: `How would you evaluate reliable payment platform scenario ${index + 1}?`,
+      requirement_ids: ['req-001', 'req-002'],
+    })),
   ],
 };
 
@@ -71,6 +79,11 @@ const flashcardDraft = {
       front: 'Which controls make a TypeScript payment API reliable?',
       requirement_ids: ['req-001', 'req-002'],
     },
+    ...Array.from({ length: 17 }, (_, index) => ({
+      back: 'Use typed contracts, runtime validation, idempotency, observability, and an explicit recovery path.',
+      front: `Which safeguard supports payment platform scenario ${index + 1}?`,
+      requirement_ids: ['req-001', 'req-002'],
+    })),
   ],
 };
 

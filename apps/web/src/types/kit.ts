@@ -82,6 +82,21 @@ export interface PipelineStep {
   detail?: string;
 }
 
+export type PracticeConfidence = 1 | 2 | 3 | 4;
+
+export interface FlashcardPracticeProgress {
+  flashcardId: string;
+  confidence: PracticeConfidence;
+  attempts: number;
+  lastPracticedAt: string;
+}
+
+export interface PracticeProgress {
+  kitId: string;
+  cards: FlashcardPracticeProgress[];
+  updatedAt: string | null;
+}
+
 export interface ApiUser {
   id: string;
   email: string;

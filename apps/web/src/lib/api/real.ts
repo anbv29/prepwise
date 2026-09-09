@@ -58,6 +58,12 @@ export const realApi: ApiClient = {
     (await request<{ kits: Awaited<ReturnType<ApiClient['listKits']>> }>('/api/kits')).kits,
   getKit: async (kitId) =>
     (await request<{ kit: Awaited<ReturnType<ApiClient['getKit']>> }>(`/api/kits/${kitId}`)).kit,
+  getPracticeProgress: async (kitId) =>
+    (
+      await request<{ progress: Awaited<ReturnType<ApiClient['getPracticeProgress']>> }>(
+        `/api/kits/${kitId}/practice`,
+      )
+    ).progress,
   createKit: (input) =>
     request('/api/kits', {
       body: JSON.stringify(input),
@@ -77,4 +83,35 @@ export const realApi: ApiClient = {
         },
       )
     ).job,
+  updateKit: async (kitId, kit) =>
+    (
+      await request<{ kit: Awaited<ReturnType<ApiClient['updateKit']>> }>(`/api/kits/${kitId}`, {
+        body: JSON.stringify({ kit }),
+        method: 'PATCH',
+      })
+    ).kit,
+  previewRegeneration: (kitId, target) =>
+    request(`/api/kits/${kitId}/regenerate/preview`, {
+      body: JSON.stringify(target),
+      method: 'POST',
+    }),
+  regenerateKitSection: async (kitId, target) =>
+    (
+      await request<{ kit: Awaited<ReturnType<ApiClient['regenerateKitSection']>> }>(
+        `/api/kits/${kitId}/regenerate`,
+        {
+          body: JSON.stringify(target),
+          method: 'POST',
+        },
+      )
+    ).kit,
+  saveFlashcardConfidence: async (kitId, flashcardId, confidence) =>
+    (
+      await request<{
+        progress: Awaited<ReturnType<ApiClient['saveFlashcardConfidence']>>;
+      }>(`/api/kits/${kitId}/practice/${flashcardId}`, {
+        body: JSON.stringify({ confidence }),
+        method: 'PUT',
+      })
+    ).progress,
 };

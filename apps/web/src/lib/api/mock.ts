@@ -1,9 +1,23 @@
 import { companyUnreachableKit, fixtureKitRecords, thinKit } from '@/lib/fixtures/kits';
-import type { ApiUser, GenerationJob, KitRecord } from '@/types/kit';
+import type {
+  ApiUser,
+  GenerationJob,
+  Kit,
+  KitRecord,
+  PracticeConfidence,
+  PracticeProgress,
+} from '@/types/kit';
 
-import { ApiClientError, type ApiClient, type CreateKitInput, type CreateKitResult } from './types';
+import {
+  ApiClientError,
+  type ApiClient,
+  type CreateKitInput,
+  type CreateKitResult,
+  type RegenerationTarget,
+} from './types';
 
 const SESSION_KEY = 'prep-kit-demo-user';
+const PRACTICE_KEY_PREFIX = 'prep-kit-demo-practice-';
 const records = structuredClone(fixtureKitRecords);
 const jobs = new Map<string, GenerationJob>();
 
@@ -36,6 +50,47 @@ function requireUser() {
   }
 }
 
+function readPracticeProgress(kitId: string): PracticeProgress {
+  const empty: PracticeProgress = { cards: [], kitId, updatedAt: null };
+  if (typeof window === 'undefined') return empty;
+
+  const stored = window.localStorage.getItem(`${PRACTICE_KEY_PREFIX}${kitId}`);
+  if (!stored) return empty;
+
+  try {
+    return JSON.parse(stored) as PracticeProgress;
+  } catch {
+    window.localStorage.removeItem(`${PRACTICE_KEY_PREFIX}${kitId}`);
+    return empty;
+  }
+}
+
+function writePracticeProgress(
+  kitId: string,
+  flashcardId: string,
+  confidence: PracticeConfidence,
+) {
+  const previous = readPracticeProgress(kitId);
+  const now = new Date().toISOString();
+  const existing = previous.cards.find((card) => card.flashcardId === flashcardId);
+  const next: PracticeProgress = {
+    cards: existing
+      ? previous.cards.map((card) =>
+          card.flashcardId === flashcardId
+            ? { ...card, attempts: card.attempts + 1, confidence, lastPracticedAt: now }
+            : card,
+        )
+      : [
+          ...previous.cards,
+          { attempts: 1, confidence, flashcardId, lastPracticedAt: now },
+        ],
+    kitId,
+    updatedAt: now,
+  };
+  window.localStorage.setItem(`${PRACTICE_KEY_PREFIX}${kitId}`, JSON.stringify(next));
+  return next;
+}
+
 function writeUser(email: string) {
   const user = { id: 'demo-user', email: email.trim().toLowerCase() };
   window.localStorage.setItem(SESSION_KEY, JSON.stringify(user));
@@ -44,6 +99,115 @@ function writeUser(email: string) {
 
 function id(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+}
+
+function findRecord(kitId: string) {
+  const record = records.find((candidate) => candidate.id === kitId);
+
+  if (!record) {
+    throw new ApiClientError('KIT_NOT_FOUND', 'Kit not found.');
+  }
+
+  return record;
+}
+
+function normalizeEditedKit(kit: Kit) {
+  const validRequirements = new Set(kit.role.requirements.map((requirement) => requirement.id));
+  const validQuestions = new Set(kit.questions.map((question) => question.id));
+  const normalized = structuredClone(kit);
+
+  normalized.questions = normalized.questions.map((question) => ({
+    ...question,
+    requirement_ids: question.requirement_ids.filter((requirementId) =>
+      validRequirements.has(requirementId),
+    ),
+  }));
+  normalized.flashcards = normalized.flashcards.map((card) => ({
+    ...card,
+    requirement_ids: card.requirement_ids.filter((requirementId) =>
+      validRequirements.has(requirementId),
+    ),
+  }));
+  normalized.schedule.days = normalized.schedule.days.map((day) => ({
+    ...day,
+    question_ids: day.question_ids.filter((questionId) => validQuestions.has(questionId)),
+  }));
+  normalized.coverage.uncovered_requirement_ids = normalized.role.requirements
+    .filter(
+      (requirement) =>
+        !normalized.questions.some((question) => question.requirement_ids.includes(requirement.id)),
+    )
+    .map((requirement) => requirement.id);
+
+  return normalized;
+}
+
+function saveKitRecord(record: KitRecord, kit: Kit) {
+  record.kit = normalizeEditedKit(kit);
+  record.version += 1;
+  record.updatedAt = new Date().toISOString();
+  return structuredClone(record);
+}
+
+function regenerationPreview(record: KitRecord, target: RegenerationTarget) {
+  if (!record.kit) {
+    throw new ApiClientError('KIT_NOT_READY', 'This kit is not ready to edit yet.');
+  }
+
+  if (target.type === 'company_brief') {
+    return {
+      title: 'Refresh the company brief?',
+      summary:
+        'The latest verified company sources will be used to rewrite the summary and company overview.',
+      changes: [
+        'Replace the interview summary',
+        'Refresh what the company does',
+        'Keep the verified source links visible',
+      ],
+      preservedEditedItems: 0,
+    };
+  }
+
+  const categoryQuestions = record.kit.questions.filter(
+    (question) => question.category === target.category,
+  );
+  const preservedEditedItems = categoryQuestions.filter((question) => question.edited).length;
+
+  return {
+    title: `Regenerate ${target.category.replace('-', ' ')} questions?`,
+    summary:
+      'Fresh questions will be generated from the role requirements while your edited questions remain exactly as they are.',
+    changes: [
+      `Replace ${categoryQuestions.length - preservedEditedItems} generated question${categoryQuestions.length - preservedEditedItems === 1 ? '' : 's'}`,
+      `Preserve ${preservedEditedItems} edited question${preservedEditedItems === 1 ? '' : 's'}`,
+      'Recalculate requirement coverage after the update',
+    ],
+    preservedEditedItems,
+  };
+}
+
+function regenerateRecord(record: KitRecord, target: RegenerationTarget) {
+  if (!record.kit) {
+    throw new ApiClientError('KIT_NOT_READY', 'This kit is not ready to edit yet.');
+  }
+
+  const next = structuredClone(record.kit);
+
+  if (target.type === 'company_brief') {
+    next.company_brief.summary = next.company_brief.summary.replace(/\s*Preparation focus:.*$/, '');
+    next.company_brief.summary +=
+      ' Preparation focus: connect your experience to the company’s current product and operating priorities.';
+  } else {
+    next.questions = next.questions.map((question) => {
+      if (question.category !== target.category || question.edited) return question;
+      return {
+        ...question,
+        answer_outline: `${question.answer_outline.replace(/\s*Close by.*$/i, '')} Close by naming the tradeoff you would validate first.`,
+      };
+    });
+  }
+
+  return saveKitRecord(record, next);
 }
 
 function createRecord(input: CreateKitInput): CreateKitResult {
@@ -174,13 +338,14 @@ export const mockApi: ApiClient = {
   async getKit(kitId) {
     requireUser();
     await wait();
-    const record = records.find((candidate) => candidate.id === kitId);
+    return structuredClone(findRecord(kitId));
+  },
 
-    if (!record) {
-      throw new ApiClientError('KIT_NOT_FOUND', 'Kit not found.');
-    }
-
-    return structuredClone(record);
+  async getPracticeProgress(kitId) {
+    requireUser();
+    await wait(160);
+    findRecord(kitId);
+    return structuredClone(readPracticeProgress(kitId));
   },
 
   async createKit(input) {
@@ -230,5 +395,33 @@ export const mockApi: ApiClient = {
     };
     jobs.set(jobId, retried);
     return structuredClone(retried);
+  },
+
+  async updateKit(kitId, kit) {
+    requireUser();
+    await wait(260);
+    return saveKitRecord(findRecord(kitId), kit);
+  },
+
+  async previewRegeneration(kitId, target) {
+    requireUser();
+    await wait(260);
+    return regenerationPreview(findRecord(kitId), target);
+  },
+
+  async regenerateKitSection(kitId, target) {
+    requireUser();
+    await wait(620);
+    return regenerateRecord(findRecord(kitId), target);
+  },
+
+  async saveFlashcardConfidence(kitId, flashcardId, confidence) {
+    requireUser();
+    await wait(180);
+    const record = findRecord(kitId);
+    if (!record.kit?.flashcards.some((card) => card.id === flashcardId)) {
+      throw new ApiClientError('FLASHCARD_NOT_FOUND', 'Flashcard not found.');
+    }
+    return structuredClone(writePracticeProgress(kitId, flashcardId, confidence));
   },
 };

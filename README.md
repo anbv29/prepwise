@@ -187,3 +187,17 @@ validates the final Appendix A object before returning it. Company and discussio
 concurrently after role extraction, while dependent model stages remain ordered. The API adds
 MongoDB-backed fetch caching and persistent progress/warning callbacks; the evaluator invokes
 the same generator directly without requiring a database.
+
+## Editable kit builder
+
+The frontend exposes the company brief, role analysis, question bank, flashcards, schedule, and
+coverage report as separate kit routes. Brief and role text can be edited inline with debounced
+background persistence. Responsibilities, requirements, questions, and flashcards can be added,
+edited, or removed, and coverage is recalculated immediately after related changes.
+
+Questions are grouped by category and support pointer or keyboard drag-and-drop plus explicit
+move controls. Editing a question marks it as protected so category regeneration preserves the
+user's work. Company-brief and question-category regeneration both show a change preview before
+the user accepts it. All builder writes update the query cache optimistically and restore the
+previous record with an error toast if persistence fails. The mock API implements the complete
+flow, while the typed real client keeps the backend swap isolated to `apps/web/src/lib/api`.

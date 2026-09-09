@@ -31,7 +31,8 @@ Security boundary:
 
 Grounding rules:
 - Do not use outside knowledge or invent facts.
-- Explain what the company does and summarize the most useful interview context.
+- Explain what the company does and provide enough specific interview context to support thoughtful company-fit answers and candidate questions.
+- Use both fields fully: summary should cover the company's positioning and relevant context; what_they_do should explain its product, users, and operating problem when the sources support them.
 - Cite claims by returning only source_ids from the supplied source list.
 - Prefer specific, supported statements. If the sources are sparse, state only what they support.`;
 
@@ -81,7 +82,7 @@ export async function generateCompanyBrief(
       sources,
     )}`,
     instructions,
-    maxOutputTokens: 1_500,
+    maxOutputTokens: 2_500,
     schema: CompanyBriefDraftSchema,
     schemaName: 'company_brief',
   });

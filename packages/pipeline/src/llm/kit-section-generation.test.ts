@@ -74,6 +74,14 @@ const initialQuestionDrafts = {
       prompt: 'Why does this company and role interest you?',
       requirement_ids: [],
     },
+    ...Array.from({ length: 14 }, (_, index) => ({
+      answer_outline:
+        'Discuss the relevant boundary, alternatives, implementation tradeoffs, validation, and operational outcome.',
+      category: 'technical',
+      difficulty: 2,
+      prompt: `How would you reason through TypeScript service scenario ${index + 1}?`,
+      requirement_ids: ['req-001'],
+    })),
   ],
 };
 
@@ -97,6 +105,11 @@ const initialFlashcardDrafts = {
       front: 'What makes a TypeScript service boundary maintainable?',
       requirement_ids: ['req-001'],
     },
+    ...Array.from({ length: 17 }, (_, index) => ({
+      back: 'Use explicit contracts, runtime checks, focused observability, and a safe migration or recovery path.',
+      front: `Which control protects TypeScript service scenario ${index + 1}?`,
+      requirement_ids: ['req-001'],
+    })),
   ],
 };
 
@@ -178,11 +191,9 @@ describe('generateInterviewQuestions', () => {
       provider,
     );
 
-    expect(result.questions.map((question) => question.id)).toEqual([
-      'question-001',
-      'question-002',
-      'question-003',
-    ]);
+    expect(result.questions).toHaveLength(17);
+    expect(result.questions[0]?.id).toBe('question-001');
+    expect(result.questions.at(-1)?.id).toBe('question-017');
     expect(result.questions[0]?.requirement_ids).toEqual(['req-001']);
     expect(result.questions.every((question) => QuestionSchema.safeParse(question).success)).toBe(
       true,
@@ -247,10 +258,9 @@ describe('generateFlashcards', () => {
     const provider = new QueuedProvider([initialFlashcardDrafts, repairedFlashcardDrafts]);
     const result = await generateFlashcards({ questions: questions.questions, role }, provider);
 
-    expect(result.flashcards.map((flashcard) => flashcard.id)).toEqual([
-      'flashcard-001',
-      'flashcard-002',
-    ]);
+    expect(result.flashcards).toHaveLength(19);
+    expect(result.flashcards[0]?.id).toBe('flashcard-001');
+    expect(result.flashcards.at(-1)?.id).toBe('flashcard-019');
     expect(result.flashcards.every((card) => FlashcardSchema.safeParse(card).success)).toBe(true);
     expect(result.calls.map((call) => call.stage)).toEqual([
       'flashcards',
@@ -284,7 +294,7 @@ describe('generateKitSections', () => {
       'flashcard_coverage_repair',
     ]);
     expect(result.coverage.isMustCoverageComplete).toBe(true);
-    expect(result.questions).toHaveLength(3);
-    expect(result.flashcards).toHaveLength(2);
+    expect(result.questions).toHaveLength(17);
+    expect(result.flashcards).toHaveLength(19);
   });
 });
