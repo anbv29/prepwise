@@ -2,11 +2,21 @@ import { ObjectId } from 'mongodb';
 import { Router, type NextFunction, type Request, type Response } from 'express';
 import { z } from 'zod';
 
-import type { KitDocument, KitRepository } from '@prep-kit/database';
+import type {
+  GenerationJobDocument,
+  GenerationJobRepository,
+  KitDocument,
+  KitRepository,
+} from '@prep-kit/database';
 
 import type { AuthConfig } from './config.js';
 import { EmailAlreadyRegisteredError, InvalidCredentialsError } from './service.js';
 import type { AuthService, AuthenticatedUser, IssuedSession } from './service.js';
+import {
+  GenerationRetryUnavailableError,
+  IdempotencyConflictError,
+  type GenerationRequestResult,
+} from '../generation/requests.js';
 
 const credentialsSchema = z.object({
   email: z.string().trim().email().max(254),
@@ -17,6 +27,10 @@ const kitIdSchema = z
   .string()
   .regex(/^[a-f\d]{24}$/iu, 'Kit id must be a 24-character hexadecimal id.')
   .transform((value) => new ObjectId(value));
+const jobIdSchema = z
+  .string()
+  .regex(/^[a-f\d]{24}$/iu, 'Job id must be a 24-character hexadecimal id.')
+  .transform((value) => new ObjectId(value));
 
 const listQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(100).default(50),
@@ -24,11 +38,22 @@ const listQuerySchema = z.object({
 
 export interface ApiRepositories {
   kits: Pick<KitRepository, 'findOwnedById' | 'listForOwner'>;
+  generationJobs: Pick<GenerationJobRepository, 'findOwnedById'>;
+}
+
+export interface GenerationRequestOperations {
+  create: (
+    ownerId: ObjectId,
+    input: unknown,
+    idempotencyKey?: string,
+  ) => Promise<GenerationRequestResult>;
+  retry: (ownerId: ObjectId, jobId: ObjectId) => Promise<GenerationJobDocument | null>;
 }
 
 export interface AuthHttpDependencies {
   authConfig: AuthConfig;
   authService: AuthService;
+  generationRequests: GenerationRequestOperations;
   repositories: ApiRepositories;
 }
 
@@ -103,6 +128,22 @@ function serializeKit(document: KitDocument) {
   };
 }
 
+function serializeGenerationJob(document: GenerationJobDocument) {
+  return {
+    id: document._id.toHexString(),
+    kitId: document.kitId.toHexString(),
+    status: document.status,
+    stage: document.stage,
+    progressPercent: document.progressPercent,
+    attempts: document.attempts,
+    error: document.error,
+    createdAt: document.createdAt.toISOString(),
+    updatedAt: document.updatedAt.toISOString(),
+    startedAt: document.startedAt?.toISOString() ?? null,
+    completedAt: document.completedAt?.toISOString() ?? null,
+  };
+}
+
 function requireAuthentication(authService: AuthService, config: AuthConfig) {
   return async (request: Request, response: Response, next: NextFunction) => {
     try {
@@ -134,7 +175,12 @@ function currentUser(response: Response) {
   return user;
 }
 
-export function createApiRouter({ authConfig, authService, repositories }: AuthHttpDependencies) {
+export function createApiRouter({
+  authConfig,
+  authService,
+  generationRequests,
+  repositories,
+}: AuthHttpDependencies) {
   const router = Router();
   const requireAuth = requireAuthentication(authService, authConfig);
 
@@ -162,6 +208,22 @@ export function createApiRouter({ authConfig, authService, repositories }: AuthH
     response.status(200).json({ user: serializeUser(currentUser(response)) });
   });
 
+  router.post('/kits', requireAuth, async (request, response) => {
+    const user = currentUser(response);
+    const result = await generationRequests.create(
+      user.id,
+      request.body,
+      request.get('Idempotency-Key'),
+    );
+
+    response.status(202).json({
+      idempotencyKey: result.idempotencyKey,
+      reused: result.reused,
+      kit: serializeKit(result.kit),
+      job: serializeGenerationJob(result.job),
+    });
+  });
+
   router.get('/kits', requireAuth, async (request, response) => {
     const { limit } = listQuerySchema.parse(request.query);
     const user = currentUser(response);
@@ -182,6 +244,36 @@ export function createApiRouter({ authConfig, authService, repositories }: AuthH
     }
 
     response.status(200).json({ kit: serializeKit(kit) });
+  });
+
+  router.get('/jobs/:jobId', requireAuth, async (request, response) => {
+    const jobId = jobIdSchema.parse(request.params.jobId);
+    const user = currentUser(response);
+    const job = await repositories.generationJobs.findOwnedById(user.id, jobId);
+
+    if (!job) {
+      response.status(404).json({
+        error: { code: 'JOB_NOT_FOUND', message: 'Generation job not found.' },
+      });
+      return;
+    }
+
+    response.status(200).json({ job: serializeGenerationJob(job) });
+  });
+
+  router.post('/jobs/:jobId/retry', requireAuth, async (request, response) => {
+    const jobId = jobIdSchema.parse(request.params.jobId);
+    const user = currentUser(response);
+    const job = await generationRequests.retry(user.id, jobId);
+
+    if (!job) {
+      response.status(404).json({
+        error: { code: 'JOB_NOT_FOUND', message: 'Generation job not found.' },
+      });
+      return;
+    }
+
+    response.status(202).json({ job: serializeGenerationJob(job) });
   });
 
   return router;
@@ -222,6 +314,20 @@ export function authenticationErrorHandler(
   if (error instanceof InvalidCredentialsError) {
     response.status(401).json({
       error: { code: 'INVALID_CREDENTIALS', message: error.message },
+    });
+    return;
+  }
+
+  if (error instanceof IdempotencyConflictError) {
+    response.status(409).json({
+      error: { code: 'IDEMPOTENCY_CONFLICT', message: error.message },
+    });
+    return;
+  }
+
+  if (error instanceof GenerationRetryUnavailableError) {
+    response.status(409).json({
+      error: { code: 'GENERATION_RETRY_UNAVAILABLE', message: error.message },
     });
     return;
   }

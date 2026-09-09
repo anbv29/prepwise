@@ -199,6 +199,15 @@ export class KitRepository {
     return parseOptionalRecord(KitDocumentSchema, document, 'kit');
   }
 
+  async deleteOwnedPending(ownerId: ObjectId, kitId: ObjectId) {
+    const result = await this.kits.deleteOne({
+      _id: kitId,
+      ownerId,
+      status: { $in: ['draft', 'queued'] },
+    });
+    return result.deletedCount > 0;
+  }
+
   async listForOwner(ownerId: ObjectId, limit = 50) {
     const documents = await this.kits
       .find({ ownerId })
@@ -303,6 +312,89 @@ export class GenerationJobRepository {
     return parseOptionalRecord(GenerationJobDocumentSchema, document, 'generation job');
   }
 
+  async findOwnedByIdempotencyKey(ownerId: ObjectId, idempotencyKey: string) {
+    const document = await this.jobs.findOne({ ownerId, idempotencyKey });
+    return parseOptionalRecord(GenerationJobDocumentSchema, document, 'generation job');
+  }
+
+  async claimNext(maxAttempts: number) {
+    const now = this.clock();
+    const document = await this.jobs.findOneAndUpdate(
+      { status: 'queued', attempts: { $lt: maxAttempts } },
+      {
+        $set: {
+          status: 'running',
+          stage: 'extracting_requirements',
+          progressPercent: 5,
+          error: null,
+          updatedAt: now,
+          startedAt: now,
+          completedAt: null,
+        },
+        $inc: { attempts: 1 },
+      },
+      { sort: { createdAt: 1 }, returnDocument: 'after' },
+    );
+
+    return parseOptionalRecord(GenerationJobDocumentSchema, document, 'generation job');
+  }
+
+  async recoverStale(staleBefore: Date, maxAttempts: number) {
+    const now = this.clock();
+    const candidates = await this.jobs
+      .find({ status: 'running', updatedAt: { $lte: staleBefore } })
+      .sort({ createdAt: 1 })
+      .limit(100)
+      .toArray();
+    const requeuedJobs: GenerationJobDocument[] = [];
+    const failedJobs: GenerationJobDocument[] = [];
+
+    for (const candidate of candidates) {
+      const parsedCandidate = parseRecord(GenerationJobDocumentSchema, candidate, 'generation job');
+      const isExhausted = parsedCandidate.attempts >= maxAttempts;
+      const document = await this.jobs.findOneAndUpdate(
+        {
+          _id: parsedCandidate._id,
+          status: 'running',
+          updatedAt: { $lte: staleBefore },
+        },
+        isExhausted
+          ? {
+              $set: {
+                status: 'failed',
+                stage: 'failed',
+                error: {
+                  code: 'WORKER_RETRY_LIMIT_REACHED',
+                  message: 'Generation stopped after repeated interrupted attempts.',
+                  retryable: false,
+                },
+                updatedAt: now,
+                completedAt: now,
+              },
+            }
+          : {
+              $set: {
+                status: 'queued',
+                stage: 'queued',
+                progressPercent: 0,
+                error: null,
+                updatedAt: now,
+                startedAt: null,
+                completedAt: null,
+              },
+            },
+        { returnDocument: 'after' },
+      );
+
+      if (document) {
+        const parsed = parseRecord(GenerationJobDocumentSchema, document, 'generation job');
+        (isExhausted ? failedJobs : requeuedJobs).push(parsed);
+      }
+    }
+
+    return { requeuedJobs, failedJobs };
+  }
+
   async markRunning(ownerId: ObjectId, jobId: ObjectId) {
     const now = this.clock();
     const result = await this.jobs.updateOne(
@@ -380,6 +472,32 @@ export class GenerationJobRepository {
     );
 
     return result.matchedCount > 0;
+  }
+
+  async retryOwned(ownerId: ObjectId, jobId: ObjectId, maxAttempts: number) {
+    const document = await this.jobs.findOneAndUpdate(
+      {
+        _id: jobId,
+        ownerId,
+        status: 'failed',
+        attempts: { $lt: maxAttempts },
+        'error.retryable': true,
+      },
+      {
+        $set: {
+          status: 'queued',
+          stage: 'queued',
+          progressPercent: 0,
+          error: null,
+          updatedAt: this.clock(),
+          startedAt: null,
+          completedAt: null,
+        },
+      },
+      { returnDocument: 'after' },
+    );
+
+    return parseOptionalRecord(GenerationJobDocumentSchema, document, 'generation job');
   }
 }
 

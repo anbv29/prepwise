@@ -135,6 +135,66 @@ describe('GenerationJobRepository', () => {
       },
     );
   });
+
+  it('atomically claims the oldest queued job below the attempt limit', async () => {
+    const findOneAndUpdate = vi.fn(async () => null);
+    const repository = new GenerationJobRepository(
+      collectionWithMethods<GenerationJobDocument>({ findOneAndUpdate }),
+      clock,
+    );
+
+    await expect(repository.claimNext(3)).resolves.toBeNull();
+    expect(findOneAndUpdate).toHaveBeenCalledWith(
+      { status: 'queued', attempts: { $lt: 3 } },
+      {
+        $set: {
+          status: 'running',
+          stage: 'extracting_requirements',
+          progressPercent: 5,
+          error: null,
+          updatedAt: now,
+          startedAt: now,
+          completedAt: null,
+        },
+        $inc: { attempts: 1 },
+      },
+      { sort: { createdAt: 1 }, returnDocument: 'after' },
+    );
+  });
+
+  it('retries only an owned, retryable failed job below the attempt limit', async () => {
+    const findOneAndUpdate = vi.fn(async () => null);
+    const repository = new GenerationJobRepository(
+      collectionWithMethods<GenerationJobDocument>({ findOneAndUpdate }),
+      clock,
+    );
+    const ownerId = new ObjectId();
+    const jobId = new ObjectId();
+
+    await repository.retryOwned(ownerId, jobId, 3);
+
+    expect(findOneAndUpdate).toHaveBeenCalledWith(
+      {
+        _id: jobId,
+        ownerId,
+        status: 'failed',
+        attempts: { $lt: 3 },
+        'error.retryable': true,
+      },
+      {
+        $set: {
+          status: 'queued',
+          stage: 'queued',
+          progressPercent: 0,
+          error: null,
+          updatedAt: now,
+          startedAt: null,
+          completedAt: null,
+        },
+      },
+      { returnDocument: 'after' },
+    );
+  });
 });
 
 describe('ResearchCacheRepository', () => {

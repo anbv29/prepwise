@@ -2,14 +2,19 @@ import { ObjectId } from 'mongodb';
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { SessionDocument, UserDocument } from '@prep-kit/database';
+import type {
+  GenerationJobDocument,
+  KitDocument,
+  SessionDocument,
+  UserDocument,
+} from '@prep-kit/database';
 
 import { createApp } from '../src/app.js';
 import type { AuthConfig } from '../src/auth/config.js';
-import type { ApiRepositories } from '../src/auth/http.js';
+import type { ApiRepositories, GenerationRequestOperations } from '../src/auth/http.js';
 import { AuthService } from '../src/auth/service.js';
 
-const NOW = new Date('2026-09-09T08:00:00.000Z');
+const NOW = new Date('2030-01-01T08:00:00.000Z');
 const authConfig: AuthConfig = {
   cookieName: 'prep_session',
   secureCookies: false,
@@ -73,15 +78,32 @@ function createAuthService() {
 describe('authentication HTTP API', () => {
   let listForOwner: ReturnType<typeof vi.fn<ApiRepositories['kits']['listForOwner']>>;
   let findOwnedById: ReturnType<typeof vi.fn<ApiRepositories['kits']['findOwnedById']>>;
+  let findOwnedJobById: ReturnType<
+    typeof vi.fn<ApiRepositories['generationJobs']['findOwnedById']>
+  >;
+  let generationRequests: GenerationRequestOperations;
+  let createGeneration: ReturnType<typeof vi.fn<GenerationRequestOperations['create']>>;
   let app: ReturnType<typeof createApp>;
 
   beforeEach(() => {
     listForOwner = vi.fn(async () => []);
     findOwnedById = vi.fn(async () => null);
+    findOwnedJobById = vi.fn(async () => null);
+    createGeneration = vi.fn(async () => {
+      throw new Error('Generation creation was not expected in this test.');
+    });
+    generationRequests = {
+      create: createGeneration,
+      retry: vi.fn(async () => null),
+    };
     app = createApp({
       authConfig,
       authService: createAuthService(),
-      repositories: { kits: { findOwnedById, listForOwner } },
+      generationRequests,
+      repositories: {
+        kits: { findOwnedById, listForOwner },
+        generationJobs: { findOwnedById: findOwnedJobById },
+      },
     });
   });
 
@@ -137,6 +159,78 @@ describe('authentication HTTP API', () => {
     await agent.get(`/api/kits/${missingKitId}`).expect(404);
     expect(findOwnedById.mock.calls[0]?.[0].toHexString()).toBe(ownerId);
     expect(findOwnedById.mock.calls[0]?.[1].toHexString()).toBe(missingKitId);
+  });
+
+  it('accepts a generation request and returns pollable kit and job ids', async () => {
+    const agent = request.agent(app);
+    const registration = await agent
+      .post('/api/auth/register')
+      .send({ email: 'owner@example.com', password: 'correct-horse-battery' })
+      .expect(201);
+    const ownerId = new ObjectId(registration.body.user.id as string);
+    const kitId = new ObjectId();
+    const jobId = new ObjectId();
+    const kit: KitDocument = {
+      _id: kitId,
+      ownerId,
+      input: {
+        jobDescription: 'Senior engineer building TypeScript backend platform services.',
+        companyUrl: 'https://example.com',
+        daysAvailable: 5,
+      },
+      inputFingerprint: 'a'.repeat(64),
+      status: 'queued',
+      progress: { stage: 'queued', percent: 0, message: 'Waiting.' },
+      kit: null,
+      warnings: [],
+      version: 2,
+      createdAt: NOW,
+      updatedAt: NOW,
+    };
+    const job: GenerationJobDocument = {
+      _id: jobId,
+      ownerId,
+      kitId,
+      idempotencyKey: 'browser-request-123',
+      status: 'queued',
+      stage: 'queued',
+      progressPercent: 0,
+      attempts: 0,
+      error: null,
+      createdAt: NOW,
+      updatedAt: NOW,
+      startedAt: null,
+      completedAt: null,
+    };
+    createGeneration.mockResolvedValue({
+      idempotencyKey: 'browser-request-123',
+      reused: false,
+      kit,
+      job,
+    });
+
+    const response = await agent
+      .post('/api/kits')
+      .set('Idempotency-Key', 'browser-request-123')
+      .send(kit.input)
+      .expect(202);
+
+    expect(createGeneration).toHaveBeenCalledWith(
+      expect.objectContaining({}),
+      kit.input,
+      'browser-request-123',
+    );
+    expect(response.body).toMatchObject({
+      idempotencyKey: 'browser-request-123',
+      reused: false,
+      kit: { id: kitId.toHexString(), status: 'queued' },
+      job: { id: jobId.toHexString(), kitId: kitId.toHexString(), status: 'queued' },
+    });
+
+    findOwnedJobById.mockResolvedValue(job);
+    const pollResponse = await agent.get(`/api/jobs/${jobId.toHexString()}`).expect(200);
+    expect(pollResponse.body.job.progressPercent).toBe(0);
+    expect(findOwnedJobById.mock.calls[0]?.[0].toHexString()).toBe(ownerId.toHexString());
   });
 
   it('rejects state-changing requests from an untrusted browser origin', async () => {

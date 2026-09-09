@@ -98,3 +98,23 @@ session records.
 includes the authenticated user's id, and a kit owned by someone else is returned as a normal
 404 rather than revealing that the record exists. Configure the optional one-to-thirty-day
 session lifetime with `SESSION_TTL_DAYS` and the cookie name with `SESSION_COOKIE_NAME`.
+
+## Background generation jobs
+
+`POST /api/kits` validates the job description, company URL, and preparation window, then
+creates a persistent queued kit and generation job. The request may include an
+`Idempotency-Key` header; sending the same key and input again returns the original records
+instead of duplicating generation work. `GET /api/jobs/:jobId` exposes owner-scoped status,
+stage, percentage, attempt count, and structured failure information. Retryable failed work can
+be requeued with `POST /api/jobs/:jobId/retry`.
+
+The API runs a single-concurrency MongoDB-backed worker. Atomic oldest-first claiming lets
+multiple application instances share the queue without claiming the same queued record. Jobs
+and kits move together through queued, generating, complete, or failed states. The worker
+recovers interrupted jobs after `WORKER_STALE_AFTER_MS`, enforces `WORKER_MAX_ATTEMPTS`, drains
+cleanly during shutdown, and polls at `WORKER_POLL_INTERVAL_MS`.
+
+For now, background execution calls the explicitly temporary scaffold generator established in
+Step 5. This proves the complete asynchronous lifecycle without pretending that research has
+already happened. The later research and LLM steps will replace that injected generator while
+keeping the same queue, progress, retry, and polling infrastructure.
