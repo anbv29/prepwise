@@ -35,6 +35,10 @@ npm run evaluate -- --input <cases.json> --output <kits.json>
 
 Copy `.env.example` to `.env` before running services that require external configuration.
 
+The web/API persistence layer uses `MONGODB_URI` and an optional `MONGODB_DATABASE` (default:
+`interview_prep`). The batch evaluator remains independent from MongoDB because the assessment
+must be able to run it directly from a clean clone.
+
 ## Batch evaluation
 
 The mandatory evaluator validates Appendix B input, processes every case through the shared
@@ -71,3 +75,12 @@ nice-to-have or unlinked questions, with harder questions first within each prio
 Initial work is balanced into contiguous day buckets; additional days become review sessions
 that reference existing question IDs. The allocator refuses to run while a must-have
 requirement is uncovered or while a question references an unknown requirement.
+
+## Persistence
+
+`packages/database` uses the official MongoDB driver with runtime-validated document models and
+ownership-scoped repositories. It stores users, hashed server-side sessions, kit drafts and
+generated output, resumable generation jobs, expiring research results, and per-kit flashcard
+practice progress. Startup creates the required uniqueness, ownership, queue, lookup, and TTL
+indexes. Database connection state is explicitly returned and closed by the application rather
+than hidden in a global singleton.
