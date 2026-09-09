@@ -50,3 +50,12 @@ requirements in source order, separates must-have gaps from nice-to-have gaps, r
 references, and converts the result into Appendix A's exact `coverage` shape. Duplicate stable
 IDs are rejected because they make the relationship between questions and requirements
 ambiguous.
+
+## Deterministic scheduling
+
+`packages/pipeline/src/schedule.ts` allocates every generated question across exactly the
+requested number of days. Questions covering must-have requirements are ordered before
+nice-to-have or unlinked questions, with harder questions first within each priority group.
+Initial work is balanced into contiguous day buckets; additional days become review sessions
+that reference existing question IDs. The allocator refuses to run while a must-have
+requirement is uncovered or while a question references an unknown requirement.
