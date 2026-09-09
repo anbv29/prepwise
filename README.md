@@ -84,3 +84,17 @@ generated output, resumable generation jobs, expiring research results, and per-
 practice progress. Startup creates the required uniqueness, ownership, queue, lookup, and TTL
 indexes. Database connection state is explicitly returned and closed by the application rather
 than hidden in a global singleton.
+
+## Authentication and authorization
+
+The API exposes registration, login, logout, and current-user endpoints under `/api/auth`.
+Passwords are salted and hashed with Node's `scrypt`; the browser receives a random, HTTP-only,
+SameSite session cookie while MongoDB stores only its SHA-256 digest. Production cookies are
+also marked Secure. Browser origins are restricted to `WEB_ORIGIN`, state-changing requests
+from other origins are rejected, and authentication responses never expose password hashes or
+session records.
+
+`GET /api/kits` and `GET /api/kits/:kitId` are the first protected resource routes. Every query
+includes the authenticated user's id, and a kit owned by someone else is returned as a normal
+404 rather than revealing that the record exists. Configure the optional one-to-thirty-day
+session lifetime with `SESSION_TTL_DAYS` and the cookie name with `SESSION_COOKIE_NAME`.
