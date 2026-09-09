@@ -41,3 +41,12 @@ The contracts package validates the prescribed kit and batch fields at runtime. 
 duplicate identifiers, broken requirement/question references, non-sequential schedule days,
 and schedules whose entry count differs from `days_available`. Useful extensions are preserved,
 as permitted by the assessment, while the required field names remain mandatory.
+
+## Deterministic coverage
+
+`packages/pipeline/src/coverage.ts` checks coverage using stable requirement references rather
+than asking the language model to judge its own output. It reports covered and uncovered
+requirements in source order, separates must-have gaps from nice-to-have gaps, records unknown
+references, and converts the result into Appendix A's exact `coverage` shape. Duplicate stable
+IDs are rejected because they make the relationship between questions and requirements
+ambiguous.
