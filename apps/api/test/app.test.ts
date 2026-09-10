@@ -15,6 +15,7 @@ import type { ApiRepositories, GenerationRequestOperations } from '../src/auth/h
 import { AuthService } from '../src/auth/service.js';
 
 const NOW = new Date('2030-01-01T08:00:00.000Z');
+const PROFILE = { firstName: 'Ada', lastName: 'Lovelace', dateOfBirth: '1995-12-10' };
 const authConfig: AuthConfig = {
   cookieName: 'prep_session',
   secureCookies: false,
@@ -26,11 +27,12 @@ function createAuthService() {
   const users: UserDocument[] = [];
   const sessions: SessionDocument[] = [];
   const userRepository = {
-    async create(email: string, passwordHash: string) {
+    async create(email: string, passwordHash: string, profile: typeof PROFILE) {
       const user: UserDocument = {
         _id: new ObjectId(),
         email: email.trim().toLowerCase(),
         passwordHash,
+        ...profile,
         plan: 'free',
         createdAt: NOW,
         updatedAt: NOW,
@@ -133,11 +135,12 @@ describe('authentication HTTP API', () => {
     const agent = request.agent(app);
     const registerResponse = await agent
       .post('/api/auth/register')
-      .send({ email: 'Person@Example.com', password: 'correct-horse-battery' })
+      .send({ email: 'Person@Example.com', password: '12345678', ...PROFILE })
       .expect(201);
 
     expect(registerResponse.body.user.email).toBe('person@example.com');
     expect(registerResponse.body.user.plan).toBe('free');
+    expect(registerResponse.body.user).toMatchObject(PROFILE);
     expect(registerResponse.body.user).not.toHaveProperty('passwordHash');
     const setCookie = registerResponse.headers['set-cookie'] as unknown as string[];
     expect(setCookie[0]).toContain('HttpOnly');
@@ -154,7 +157,7 @@ describe('authentication HTTP API', () => {
       .expect(400);
 
     expect(response.body.error.code).toBe('INVALID_REQUEST');
-    expect(response.body.error.details).toHaveLength(2);
+    expect(response.body.error.details).toHaveLength(5);
   });
 
   it('protects private routes and scopes kit queries to the authenticated owner', async () => {
@@ -162,7 +165,7 @@ describe('authentication HTTP API', () => {
     const agent = request.agent(app);
     const registration = await agent
       .post('/api/auth/register')
-      .send({ email: 'owner@example.com', password: 'correct-horse-battery' })
+      .send({ email: 'owner@example.com', password: 'correct-horse-battery', ...PROFILE })
       .expect(201);
     const ownerId = registration.body.user.id as string;
 
@@ -180,7 +183,7 @@ describe('authentication HTTP API', () => {
     const agent = request.agent(app);
     const registration = await agent
       .post('/api/auth/register')
-      .send({ email: 'owner@example.com', password: 'correct-horse-battery' })
+      .send({ email: 'owner@example.com', password: 'correct-horse-battery', ...PROFILE })
       .expect(201);
     const ownerId = new ObjectId(registration.body.user.id as string);
     const kitId = new ObjectId();
@@ -252,7 +255,7 @@ describe('authentication HTTP API', () => {
     const response = await request(app)
       .post('/api/auth/register')
       .set('Origin', 'https://attacker.example')
-      .send({ email: 'person@example.com', password: 'correct-horse-battery' })
+      .send({ email: 'person@example.com', password: 'correct-horse-battery', ...PROFILE })
       .expect(403);
 
     expect(response.body.error.code).toBe('ORIGIN_NOT_ALLOWED');
@@ -262,7 +265,7 @@ describe('authentication HTTP API', () => {
     const agent = request.agent(app);
     await agent
       .post('/api/auth/register')
-      .send({ email: 'person@example.com', password: 'correct-horse-battery' })
+      .send({ email: 'person@example.com', password: 'correct-horse-battery', ...PROFILE })
       .expect(201);
 
     const logoutResponse = await agent.post('/api/auth/logout').expect(204);

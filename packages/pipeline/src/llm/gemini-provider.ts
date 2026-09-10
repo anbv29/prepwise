@@ -91,7 +91,8 @@ function normalizeGeminiError(error: unknown) {
 
 function jsonSchemaForGemini(schema: z.ZodType) {
   const jsonSchema = z.toJSONSchema(schema) as Record<string, unknown>;
-  const { $schema: _draftDeclaration, ...supportedSchema } = jsonSchema;
+  delete jsonSchema.$schema;
+  const supportedSchema = jsonSchema;
 
   const removeUnsupportedSizeConstraints = (value: unknown) => {
     if (Array.isArray(value)) {

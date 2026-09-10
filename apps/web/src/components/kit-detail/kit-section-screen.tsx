@@ -19,6 +19,7 @@ import Link from 'next/link';
 
 import { KitDetailRouteSkeleton } from '@/components/ui/skeleton';
 import { api } from '@/lib/api';
+import { visibleWarnings } from '@/lib/visible-warnings';
 import type { Kit } from '@/types/kit';
 
 import { BriefBuilder, RoleBuilder } from './brief-role-builder';
@@ -411,6 +412,7 @@ export function KitSectionScreen({ kitId, section }: { kitId: string; section: K
     );
   const record = kitQuery.data;
   const kit = record.kit;
+  const displayedWarnings = visibleWarnings(record.warnings);
 
   if (!kit)
     return (
@@ -449,12 +451,12 @@ export function KitSectionScreen({ kitId, section }: { kitId: string; section: K
             <SavingIndicator />
           </div>
         </header>
-        {record.warnings.length > 0 ? (
+        {displayedWarnings.length > 0 ? (
           <div className="mb-7 flex gap-3 border-l-2 border-[var(--warning)] bg-[var(--warning-soft)] p-4 text-sm">
             <TriangleAlert className="mt-0.5 shrink-0 text-[var(--warning)]" size={18} />
             <div>
               <p className="font-semibold text-[var(--warning)]">Limited source note</p>
-              <p className="mt-1 text-[var(--muted)]">{record.warnings[0]?.message}</p>
+              <p className="mt-1 text-[var(--muted)]">{displayedWarnings[0]?.message}</p>
             </div>
           </div>
         ) : null}

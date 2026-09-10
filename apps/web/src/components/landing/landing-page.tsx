@@ -18,6 +18,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 import { BrandMark } from '@/components/brand-mark';
 import { api } from '@/lib/api';
@@ -71,6 +73,7 @@ interface Plan {
   description: string;
   features: string[];
   cta: string;
+  available?: boolean;
   featured?: boolean;
 }
 
@@ -85,6 +88,7 @@ const plans: Plan[] = [
       'Editing, practice, and progress',
     ],
     cta: 'Start free',
+    available: true,
   },
   {
     name: 'Focus',
@@ -97,7 +101,7 @@ const plans: Plan[] = [
       'Batch uploads',
       'Priority regeneration',
     ],
-    cta: 'Choose Focus',
+    cta: 'Coming soon',
     featured: true,
   },
   {
@@ -112,16 +116,17 @@ const plans: Plan[] = [
       'Advanced coverage',
       'Preparation exports',
     ],
-    cta: 'Choose Pro',
+    cta: 'Coming soon',
   },
 ];
 
 function AccountActions() {
-  const user = useQuery({ queryKey: ['current-user'], queryFn: api.getCurrentUser, retry: false });
-
-  if (user.isLoading) {
-    return <span aria-label="Loading account" className="skeleton block h-10 w-24 rounded-lg" />;
-  }
+  const user = useQuery({
+    queryKey: ['current-user'],
+    queryFn: api.getCurrentUser,
+    retry: false,
+    staleTime: 60_000,
+  });
 
   if (user.data) {
     return (
@@ -150,6 +155,14 @@ function AccountActions() {
 }
 
 export function LandingPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.prefetch('/login');
+    router.prefetch('/register');
+    router.prefetch('/dashboard');
+  }, [router]);
+
   return (
     <div className="min-h-screen overflow-x-hidden bg-[var(--paper)]">
       <header className="app-header sticky top-0 z-50 border-b border-[var(--border)]">
@@ -393,8 +406,8 @@ export function LandingPage() {
               Use the depth that matches your search.
             </h2>
             <p className="mt-4 text-[var(--muted)]">
-              Start with one complete kit. Upgrade only when you are preparing across multiple
-              roles.
+              Start with one complete kit. Focus and Pro upgrades will open after secure checkout is
+              connected.
             </p>
             <div className="mt-12 grid border border-[var(--border)] lg:grid-cols-3">
               {plans.map((plan, index) => (
@@ -429,12 +442,22 @@ export function LandingPage() {
                       </li>
                     ))}
                   </ul>
-                  <Link
-                    className={`mt-auto inline-flex min-h-12 w-full items-center justify-center whitespace-nowrap rounded-lg border px-4 text-sm font-semibold ${plan.featured ? 'border-white bg-white text-[#16161b]' : 'border-[var(--border-strong)] hover:border-[var(--accent)] hover:text-[var(--accent)]'}`}
-                    href="/register"
-                  >
-                    {plan.cta}
-                  </Link>
+                  {plan.available ? (
+                    <Link
+                      className={`mt-auto inline-flex min-h-12 w-full items-center justify-center whitespace-nowrap rounded-lg border px-4 text-sm font-semibold ${plan.featured ? 'border-white bg-white text-[#16161b]' : 'border-[var(--border-strong)] hover:border-[var(--accent)] hover:text-[var(--accent)]'}`}
+                      href="/register"
+                    >
+                      {plan.cta}
+                    </Link>
+                  ) : (
+                    <button
+                      className={`mt-auto inline-flex min-h-12 w-full cursor-not-allowed items-center justify-center whitespace-nowrap rounded-lg border px-4 text-sm font-semibold opacity-60 ${plan.featured ? 'border-white/40 text-white' : 'border-[var(--border-strong)] text-[var(--muted)]'}`}
+                      disabled
+                      type="button"
+                    >
+                      {plan.cta}
+                    </button>
+                  )}
                 </article>
               ))}
             </div>

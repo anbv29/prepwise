@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { GeminiLlmConfig } from './config.js';
 import { GeminiStructuredLlmProvider, type GeminiClient } from './gemini-provider.js';
-import { LlmProviderError } from './provider.js';
+import type { LlmProviderError } from './provider.js';
 
 const config: GeminiLlmConfig = {
   apiKey: 'gemini-secret',

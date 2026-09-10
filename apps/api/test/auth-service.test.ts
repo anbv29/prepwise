@@ -13,6 +13,7 @@ import { hashSessionToken } from '../src/auth/session-token.js';
 
 const NOW = new Date('2026-09-09T08:00:00.000Z');
 const TTL = 60 * 60 * 1000;
+const PROFILE = { firstName: 'Ada', lastName: 'Lovelace', dateOfBirth: '1995-12-10' };
 
 function createRepositories() {
   const users: UserDocument[] = [];
@@ -21,11 +22,12 @@ function createRepositories() {
   return {
     records: { sessions, users },
     users: {
-      create: vi.fn(async (email: string, passwordHash: string) => {
+      create: vi.fn(async (email: string, passwordHash: string, profile: typeof PROFILE) => {
         const user: UserDocument = {
           _id: new ObjectId(),
           email: email.trim().toLowerCase(),
           passwordHash,
+          ...profile,
           plan: 'free',
           createdAt: NOW,
           updatedAt: NOW,
@@ -83,11 +85,16 @@ describe('AuthService', () => {
   });
 
   it('registers a normalized user, hashes the password, and issues a hashed session', async () => {
-    const result = await authService.register(' Person@Example.COM ', 'correct-horse-battery');
+    const result = await authService.register(
+      ' Person@Example.COM ',
+      'correct-horse-battery',
+      PROFILE,
+    );
     const user = repositories.records.users[0];
     const session = repositories.records.sessions[0];
 
     expect(user?.email).toBe('person@example.com');
+    expect(result.user).toMatchObject(PROFILE);
     expect(result.user.plan).toBe('free');
     expect(user?.passwordHash).not.toBe('correct-horse-battery');
     await expect(verifyPassword('correct-horse-battery', user?.passwordHash ?? '')).resolves.toBe(
@@ -99,15 +106,15 @@ describe('AuthService', () => {
   });
 
   it('rejects duplicate registration', async () => {
-    await authService.register('person@example.com', 'correct-horse-battery');
+    await authService.register('person@example.com', 'correct-horse-battery', PROFILE);
 
     await expect(
-      authService.register('PERSON@example.com', 'another-safe-password'),
+      authService.register('PERSON@example.com', 'another-safe-password', PROFILE),
     ).rejects.toBeInstanceOf(EmailAlreadyRegisteredError);
   });
 
   it('returns the same safe error for an unknown email and a wrong password', async () => {
-    await authService.register('person@example.com', 'correct-horse-battery');
+    await authService.register('person@example.com', 'correct-horse-battery', PROFILE);
 
     await expect(
       authService.login('unknown@example.com', 'wrong-password-value'),
@@ -118,7 +125,11 @@ describe('AuthService', () => {
   });
 
   it('authenticates and revokes a session using only its token hash', async () => {
-    const session = await authService.register('person@example.com', 'correct-horse-battery');
+    const session = await authService.register(
+      'person@example.com',
+      'correct-horse-battery',
+      PROFILE,
+    );
 
     await expect(authService.authenticate(session.token)).resolves.toEqual(session.user);
     await authService.logout(session.token);

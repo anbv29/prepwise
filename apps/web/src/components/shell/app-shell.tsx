@@ -63,7 +63,9 @@ export function AppShell({ children }: { children: ReactNode }) {
               {userQuery.data.plan}
             </span>
             <span className="hidden max-w-56 truncate text-sm text-[var(--muted)] sm:block">
-              {userQuery.data.email}
+              {userQuery.data.firstName
+                ? `${userQuery.data.firstName} ${userQuery.data.lastName ?? ''}`.trim()
+                : userQuery.data.email}
             </span>
             <Link
               aria-label="Return to main site"

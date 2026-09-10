@@ -10,11 +10,20 @@ const API_ORIGIN =
     : (process.env.NEXT_PUBLIC_API_ORIGIN ?? 'http://localhost:4000');
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_ORIGIN}${path}`, {
-    ...init,
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...init?.headers },
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_ORIGIN}${path}`, {
+      ...init,
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', ...init?.headers },
+    });
+  } catch {
+    throw new ApiClientError(
+      'SERVICE_UNAVAILABLE',
+      'The authentication service is unavailable. Make sure the API is running and try again.',
+    );
+  }
 
   if (response.status === 204) {
     return undefined as T;

@@ -113,8 +113,8 @@ function normalizeGeminiSearchError(error: unknown) {
 
 function geminiSearchJsonSchema() {
   const schema = z.toJSONSchema(groundedResultsSchema) as Record<string, unknown>;
-  const { $schema: _draftDeclaration, ...supportedSchema } = schema;
-  return supportedSchema;
+  delete schema.$schema;
+  return schema;
 }
 
 const systemInstruction = `Use Google Search to find attributable public web results for the supplied query.

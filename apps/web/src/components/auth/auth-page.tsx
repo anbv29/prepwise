@@ -40,8 +40,8 @@ export function AuthPage({ mode, returnTo }: { mode: 'login' | 'register'; retur
           </h2>
           <p className="mt-3 text-[var(--muted)]">
             {isLogin
-              ? 'Your demo account details are already filled in.'
-              : 'No verification or setup steps—just the essentials.'}
+              ? 'Enter your account details to return to your workspace.'
+              : 'Tell us a little about yourself to create your workspace.'}
           </p>
           <AuthForm mode={mode} {...(returnTo ? { returnTo } : {})} />
         </div>

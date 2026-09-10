@@ -19,6 +19,9 @@ describe('database document schemas', () => {
       _id: new ObjectId(),
       email: 'engineer@example.com',
       passwordHash: 'argon2-hash',
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      dateOfBirth: '1995-12-10',
       createdAt: now,
       updatedAt: now,
     });

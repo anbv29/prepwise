@@ -20,6 +20,7 @@ import {
 
 const now = new Date('2026-09-09T10:00:00.000Z');
 const clock = () => now;
+const profile = { firstName: 'Ada', lastName: 'Lovelace', dateOfBirth: '1995-12-10' };
 
 function collectionWithMethods<T extends Document>(methods: Record<string, unknown>) {
   return methods as unknown as Collection<T>;
@@ -33,10 +34,11 @@ describe('UserRepository', () => {
       clock,
     );
 
-    const user = await repository.create(' Engineer@Example.COM ', 'password-hash');
+    const user = await repository.create(' Engineer@Example.COM ', 'password-hash', profile);
 
     expect(user.email).toBe('engineer@example.com');
     expect(user.plan).toBe('free');
+    expect(user).toMatchObject(profile);
     expect(insertOne).toHaveBeenCalledWith(user);
   });
 

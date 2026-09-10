@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import type { GeminiLlmConfig } from '../llm/config.js';
-import { DiscussionSearchError } from './discussion-search.js';
+import type { DiscussionSearchError } from './discussion-search.js';
 import {
   GeminiDiscussionSearchProvider,
   type GeminiGroundedSearchClient,

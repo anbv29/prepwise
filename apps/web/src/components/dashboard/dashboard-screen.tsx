@@ -15,6 +15,7 @@ import Link from 'next/link';
 
 import { DashboardSkeleton } from '@/components/ui/skeleton';
 import { api } from '@/lib/api';
+import { visibleWarnings } from '@/lib/visible-warnings';
 import type { KitRecord, KitStatus } from '@/types/kit';
 
 const statusStyle: Record<KitStatus, { bar: string; badge: string; label: string }> = {
@@ -56,6 +57,7 @@ function daysUntil(record: KitRecord) {
 
 function KitRow({ record }: { record: KitRecord }) {
   const visual = statusStyle[record.status];
+  const displayedWarnings = visibleWarnings(record.warnings);
   let company = record.kit?.source.company;
   if (!company) {
     try {
@@ -80,10 +82,10 @@ function KitRow({ record }: { record: KitRecord }) {
             <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${visual.badge}`}>
               {visual.label}
             </span>
-            {record.warnings.length > 0 ? (
+            {displayedWarnings.length > 0 ? (
               <span className="inline-flex items-center gap-1 text-xs font-medium text-[var(--warning)]">
-                <TriangleAlert size={14} /> {record.warnings.length}{' '}
-                {record.warnings.length === 1 ? 'note' : 'notes'}
+                <TriangleAlert size={14} /> {displayedWarnings.length}{' '}
+                {displayedWarnings.length === 1 ? 'note' : 'notes'}
               </span>
             ) : null}
           </div>

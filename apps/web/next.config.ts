@@ -1,7 +1,6 @@
 import type { NextConfig } from 'next';
 
-const apiOrigin =
-  process.env.API_ORIGIN?.trim() || process.env.NEXT_PUBLIC_API_ORIGIN?.trim();
+const apiOrigin = process.env.API_ORIGIN?.trim() || process.env.NEXT_PUBLIC_API_ORIGIN?.trim();
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
