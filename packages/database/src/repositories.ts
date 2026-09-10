@@ -91,12 +91,19 @@ export class UserRepository {
     private readonly clock: Clock = () => new Date(),
   ) {}
 
-  async create(email: string, passwordHash: string) {
+  async create(
+    email: string,
+    passwordHash: string,
+    profile: { firstName: string; lastName: string; dateOfBirth: string },
+  ) {
     const now = this.clock();
     const document = UserDocumentSchema.parse({
       _id: new ObjectId(),
       email: normalizeEmail(email),
       passwordHash,
+      firstName: profile.firstName.trim(),
+      lastName: profile.lastName.trim(),
+      dateOfBirth: profile.dateOfBirth,
       plan: 'free',
       createdAt: now,
       updatedAt: now,

@@ -23,7 +23,17 @@ import {
 
 const credentialsSchema = z.object({
   email: z.string().trim().email().max(254),
-  password: z.string().min(12).max(128),
+  password: z.string().min(8).max(128),
+});
+const registrationSchema = credentialsSchema.extend({
+  firstName: z.string().trim().min(1).max(50),
+  lastName: z.string().trim().min(1).max(50),
+  dateOfBirth: z
+    .string()
+    .date()
+    .refine((value) => value <= new Date().toISOString().slice(0, 10), {
+      message: 'Date of birth cannot be in the future.',
+    }),
 });
 
 const kitIdSchema = z
@@ -131,7 +141,14 @@ function clearSessionCookie(response: Response, config: AuthConfig) {
 }
 
 function serializeUser(user: AuthenticatedUser) {
-  return { id: user.id.toHexString(), email: user.email, plan: user.plan };
+  return {
+    id: user.id.toHexString(),
+    email: user.email,
+    ...(user.firstName ? { firstName: user.firstName } : {}),
+    ...(user.lastName ? { lastName: user.lastName } : {}),
+    ...(user.dateOfBirth ? { dateOfBirth: user.dateOfBirth } : {}),
+    plan: user.plan,
+  };
 }
 
 function serializeKit(document: KitDocument) {
@@ -242,8 +259,12 @@ export function createApiRouter({
   const requireAuth = requireAuthentication(authService, authConfig);
 
   router.post('/auth/register', async (request, response) => {
-    const credentials = credentialsSchema.parse(request.body);
-    const session = await authService.register(credentials.email, credentials.password);
+    const credentials = registrationSchema.parse(request.body);
+    const session = await authService.register(credentials.email, credentials.password, {
+      firstName: credentials.firstName,
+      lastName: credentials.lastName,
+      dateOfBirth: credentials.dateOfBirth,
+    });
     writeSessionCookie(response, session, authConfig);
     response.status(201).json({ user: serializeUser(session.user) });
   });

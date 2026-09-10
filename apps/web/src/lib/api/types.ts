@@ -13,6 +13,12 @@ export interface Credentials {
   password: string;
 }
 
+export interface RegistrationCredentials extends Credentials {
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
+}
+
 export interface CreateKitInput {
   jobDescription: string;
   companyUrl: string;
@@ -52,7 +58,7 @@ export interface ApiClient {
   logout: () => Promise<void>;
   previewRegeneration: (kitId: string, target: RegenerationTarget) => Promise<RegenerationPreview>;
   regenerateKitSection: (kitId: string, target: RegenerationTarget) => Promise<KitRecord>;
-  register: (credentials: Credentials) => Promise<ApiUser>;
+  register: (credentials: RegistrationCredentials) => Promise<ApiUser>;
   retryJob: (jobId: string) => Promise<GenerationJob>;
   saveFlashcardConfidence: (
     kitId: string,

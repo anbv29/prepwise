@@ -44,6 +44,9 @@ function readUser(): ApiUser | null {
     return {
       id: user.id,
       email: user.email,
+      ...(typeof user.firstName === 'string' ? { firstName: user.firstName } : {}),
+      ...(typeof user.lastName === 'string' ? { lastName: user.lastName } : {}),
+      ...(typeof user.dateOfBirth === 'string' ? { dateOfBirth: user.dateOfBirth } : {}),
       plan: ['focus', 'pro'].includes(user.plan ?? '') ? (user.plan as 'focus' | 'pro') : 'free',
     };
   } catch {
@@ -92,8 +95,16 @@ function writePracticeProgress(kitId: string, flashcardId: string, confidence: P
   return next;
 }
 
-function writeUser(email: string) {
-  const user: ApiUser = { id: 'demo-user', email: email.trim().toLowerCase(), plan: 'free' };
+function writeUser(
+  email: string,
+  profile?: { firstName: string; lastName: string; dateOfBirth: string },
+) {
+  const user: ApiUser = {
+    id: 'demo-user',
+    email: email.trim().toLowerCase(),
+    ...(profile ?? {}),
+    plan: 'free',
+  };
   window.localStorage.setItem(SESSION_KEY, JSON.stringify(user));
   return user;
 }
@@ -313,8 +324,8 @@ export const mockApi: ApiClient = {
   async login(credentials) {
     await wait();
 
-    if (credentials.password.length < 12) {
-      throw new ApiClientError('INVALID_CREDENTIALS', 'Use at least 12 characters for the demo.');
+    if (credentials.password.length < 8) {
+      throw new ApiClientError('INVALID_CREDENTIALS', 'Use at least 8 characters.');
     }
 
     return writeUser(credentials.email);
@@ -322,7 +333,11 @@ export const mockApi: ApiClient = {
 
   async register(credentials) {
     await wait();
-    return writeUser(credentials.email);
+    return writeUser(credentials.email, {
+      firstName: credentials.firstName,
+      lastName: credentials.lastName,
+      dateOfBirth: credentials.dateOfBirth,
+    });
   },
 
   async logout() {

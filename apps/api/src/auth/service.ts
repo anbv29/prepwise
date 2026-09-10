@@ -21,7 +21,16 @@ type AuthSessionRepository = Pick<
 export interface AuthenticatedUser {
   id: ObjectId;
   email: string;
+  firstName?: string;
+  lastName?: string;
+  dateOfBirth?: string;
   plan: UserDocument['plan'];
+}
+
+export interface RegistrationProfile {
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
 }
 
 export interface IssuedSession {
@@ -45,7 +54,14 @@ export class InvalidCredentialsError extends Error {
 }
 
 function publicUser(user: UserDocument): AuthenticatedUser {
-  return { id: user._id, email: user.email, plan: user.plan };
+  return {
+    id: user._id,
+    email: user.email,
+    ...(user.firstName ? { firstName: user.firstName } : {}),
+    ...(user.lastName ? { lastName: user.lastName } : {}),
+    ...(user.dateOfBirth ? { dateOfBirth: user.dateOfBirth } : {}),
+    plan: user.plan,
+  };
 }
 
 function isDuplicateKeyError(error: unknown) {
@@ -65,7 +81,11 @@ export class AuthService {
     private readonly clock: () => Date = () => new Date(),
   ) {}
 
-  async register(email: string, password: string): Promise<IssuedSession> {
+  async register(
+    email: string,
+    password: string,
+    profile: RegistrationProfile,
+  ): Promise<IssuedSession> {
     const existingUser = await this.users.findByEmail(email);
 
     if (existingUser) {
@@ -76,7 +96,7 @@ export class AuthService {
     let user: UserDocument;
 
     try {
-      user = await this.users.create(email, passwordHash);
+      user = await this.users.create(email, passwordHash, profile);
     } catch (error) {
       if (isDuplicateKeyError(error)) {
         throw new EmailAlreadyRegisteredError();
