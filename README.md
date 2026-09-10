@@ -48,10 +48,10 @@ and writes one Appendix B output file. Shared packages are compiled automaticall
 command runs, so no separate build command is required.
 
 The evaluator now uses the same production generator as the API worker while remaining
-independent from MongoDB. It reads OpenAI, optional Brave Search, and research safety settings
-from `.env`, runs real bounded research and structured generation, and records an individual
-failure without preventing later cases from running. Tests can still inject the deterministic
-scaffold generator without making network or paid model requests.
+independent from MongoDB. It reads the selected LLM provider and research safety settings from
+`.env`, runs real bounded research and structured generation, and records an individual failure
+without preventing later cases from running. Tests can still inject the deterministic scaffold
+generator without making network or paid model requests.
 
 ## Contract validation
 
@@ -140,14 +140,13 @@ scripts and layout noise, and returns plain text with source URLs, titles, trunc
 recoverable warnings. MongoDB caching stores successful pages for a day by default and failed
 requests briefly to avoid repeatedly hitting unavailable targets.
 
-Public interview signals are obtained through the server-side Brave Search adapter using
-separate site-restricted Reddit and Glassdoor queries. API responses are runtime validated;
-only genuine HTTPS hosts are accepted, markup is removed from snippets, URLs are deduplicated,
-and every signal retains its source query and URL. Configure it with `BRAVE_SEARCH_API_KEY`.
-The API worker runs company requests through the MongoDB cache before crawling. Discussion
-search is optional: when `BRAVE_SEARCH_API_KEY` is missing or a research source is unavailable,
-the generator records a warning and continues with an explicit limited-research fallback rather
-than inventing material.
+Public interview signals use Gemini Google Search grounding when `LLM_PROVIDER=gemini`. OpenAI
+mode can optionally use the server-side Brave adapter. Both paths run separate site-restricted
+Reddit and Glassdoor queries; only genuine HTTPS hosts are accepted, markup is removed from
+snippets, URLs are deduplicated, and every signal retains its source query and URL. The API worker
+runs company requests through the MongoDB cache before crawling. If grounding quota is unavailable
+or a research source fails, the generator records a warning and continues with an explicit
+limited-research fallback rather than inventing material.
 
 ## Structured LLM and requirement extraction
 

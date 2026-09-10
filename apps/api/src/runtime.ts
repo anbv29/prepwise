@@ -13,6 +13,7 @@ import {
   BraveDiscussionSearchProvider,
   buildSchedule,
   createFullKitGenerator,
+  GeminiDiscussionSearchProvider,
   GeminiStructuredLlmProvider,
   OpenAiStructuredLlmProvider,
   readBraveSearchConfig,
@@ -22,6 +23,7 @@ import {
   readResearchConfig,
   safeFetchText,
   type KitGenerator,
+  type DiscussionSearchProvider,
 } from '@prep-kit/pipeline';
 
 import { createApp } from './app.js';
@@ -128,25 +130,29 @@ async function createRuntime(): Promise<ApiRuntime> {
   const authConfig = readAuthConfig();
   const workerConfig = readWorkerConfig();
   const researchConfig = readResearchConfig();
-  const llmProvider =
-    readLlmProviderName() === 'gemini'
-      ? new GeminiStructuredLlmProvider(readGeminiLlmConfig())
-      : new OpenAiStructuredLlmProvider(readOpenAiLlmConfig());
+  const llmProviderName = readLlmProviderName();
+  const geminiConfig = llmProviderName === 'gemini' ? readGeminiLlmConfig() : null;
+  const llmProvider = geminiConfig
+    ? new GeminiStructuredLlmProvider(geminiConfig)
+    : new OpenAiStructuredLlmProvider(readOpenAiLlmConfig());
   const cachedResearch = new CachedResearchFetcher(
     repositories.researchCache,
     (url) => safeFetchText(url, researchConfig),
     researchConfig,
   );
-  const hasDiscussionSearchKey = Boolean(
-    process.env.BRAVE_SEARCH_API_KEY?.trim() || process.env.SEARCH_API_KEY?.trim(),
-  );
+  let discussionProvider: DiscussionSearchProvider | undefined;
+
+  if (geminiConfig) {
+    discussionProvider = new GeminiDiscussionSearchProvider(geminiConfig);
+  } else if (process.env.BRAVE_SEARCH_API_KEY?.trim() || process.env.SEARCH_API_KEY?.trim()) {
+    discussionProvider = new BraveDiscussionSearchProvider(readBraveSearchConfig());
+  }
+
   const generateKit: KitGenerator = createFullKitGenerator({
     provider: llmProvider,
     researchConfig,
     fetchText: (url) => cachedResearch.fetch(url),
-    ...(hasDiscussionSearchKey
-      ? { discussionProvider: new BraveDiscussionSearchProvider(readBraveSearchConfig()) }
-      : {}),
+    ...(discussionProvider ? { discussionProvider } : {}),
   });
   const authService = new AuthService(
     repositories.users,

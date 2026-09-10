@@ -5,7 +5,7 @@ This application deploys as two Vercel projects from one npm-workspaces monorepo
 - `apps/web` is the public Next.js website.
 - `apps/api` is the authenticated Express API and AI generation function.
 - MongoDB Atlas provides durable users, sessions, kits, job state, research cache, and practice progress.
-- Gemini or OpenAI provides strict structured generation. Brave Search is optional.
+- Gemini provides strict generation and Google Search grounding. OpenAI can use optional Brave Search.
 
 The browser talks only to the API URL configured at build time. The API accepts browser requests
 only from its configured `WEB_ORIGIN`, and session cookies are HTTP-only and Secure in production.
@@ -28,8 +28,9 @@ npm run dev
 ```
 
 Open `http://localhost:3000`, create a new account, paste a real job description and company URL,
-and wait for the job page to reach `complete`. The optional Brave key only adds public interview
-discussion signals; it is not required for a complete kit.
+and wait for the job page to finish. In Gemini mode the same key powers generation and grounded
+public interview research. If its Google Search grounding quota is unavailable, the kit still
+finishes with a limited-research note.
 
 To stop or restart the local database later:
 
@@ -81,10 +82,11 @@ RESEARCH_FAILURE_CACHE_TTL_MS=300000
 ```
 
 To use OpenAI instead, set `LLM_PROVIDER=openai`, `OPENAI_API_KEY`, and `OPENAI_MODEL=gpt-5.5`
-instead of the three Gemini variables.
+instead of the three Gemini variables. Add `BRAVE_SEARCH_API_KEY` only if OpenAI mode should also
+include public interview discussion signals.
 
-Do not set `ALLOW_PRIVATE_NETWORKS=true` on Vercel. Add `BRAVE_SEARCH_API_KEY` only if discussion
-search is wanted.
+Do not set `ALLOW_PRIVATE_NETWORKS=true` on Vercel. Google Search grounding may require billing to
+be enabled on the Google AI project even when its current plan includes a search allowance.
 
 The API Vercel configuration gives the function a 300-second maximum duration. Each queued job is
 atomically claimed from MongoDB and attached to the Vercel request lifecycle. If an invocation is
