@@ -71,13 +71,61 @@ function statusFromError(error: unknown) {
   return null;
 }
 
+function codeFromError(error: unknown) {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    typeof (error as { code?: unknown }).code === 'string'
+  ) {
+    return (error as { code: string }).code;
+  }
+
+  return null;
+}
+
 function normalizeProviderError(error: unknown) {
   if (error instanceof LlmProviderError) {
     return error;
   }
 
   const status = statusFromError(error);
+  const providerCode = codeFromError(error);
   const name = error instanceof Error ? error.name : '';
+
+  if (
+    status === 429 &&
+    ['credit_balance_exhausted', 'insufficient_quota'].includes(providerCode ?? '')
+  ) {
+    return new LlmProviderError(
+      'LLM_QUOTA_EXHAUSTED',
+      'The OpenAI API account has no credits remaining. Add API credits and retry the job.',
+      false,
+      status,
+      error instanceof Error ? { cause: error } : undefined,
+    );
+  }
+
+  if (status === 401) {
+    return new LlmProviderError(
+      'LLM_AUTHENTICATION_FAILED',
+      'The OpenAI API key was rejected. Replace the server-side key and retry the job.',
+      false,
+      status,
+      error instanceof Error ? { cause: error } : undefined,
+    );
+  }
+
+  if (status === 403) {
+    return new LlmProviderError(
+      'LLM_ACCESS_DENIED',
+      'The OpenAI project cannot access the configured model.',
+      false,
+      status,
+      error instanceof Error ? { cause: error } : undefined,
+    );
+  }
+
   const retryable =
     status === 408 ||
     status === 409 ||

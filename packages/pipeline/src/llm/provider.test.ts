@@ -110,6 +110,33 @@ describe('OpenAiStructuredLlmProvider', () => {
     expect(sleep).not.toHaveBeenCalled();
   });
 
+  it('reports exhausted API credits without retrying', async () => {
+    const parse = vi.fn(async () => {
+      throw Object.assign(new Error('No credits remaining'), {
+        code: 'credit_balance_exhausted',
+        status: 429,
+      });
+    });
+    const sleep = vi.fn(async () => undefined);
+    const provider = new OpenAiStructuredLlmProvider(config, fakeClient(parse), sleep);
+
+    await expect(
+      provider.generateObject({
+        input: 'input',
+        instructions: 'instructions',
+        maxOutputTokens: 100,
+        schema,
+        schemaName: 'quota_schema',
+      }),
+    ).rejects.toMatchObject<Partial<LlmProviderError>>({
+      code: 'LLM_QUOTA_EXHAUSTED',
+      retryable: false,
+      status: 429,
+    });
+    expect(parse).toHaveBeenCalledTimes(1);
+    expect(sleep).not.toHaveBeenCalled();
+  });
+
   it('rejects absent or locally invalid parsed output', async () => {
     for (const output of [null, { value: 42 }]) {
       const provider = new OpenAiStructuredLlmProvider(
