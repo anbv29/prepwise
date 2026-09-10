@@ -61,7 +61,10 @@ describe('GeminiStructuredLlmProvider', () => {
         }),
       }),
     );
-    const sentSchema = generateContent.mock.calls[0]?.[0].config.responseJsonSchema;
+    const calls = generateContent.mock.calls as unknown as Array<
+      Array<{ config: { responseJsonSchema: unknown } }>
+    >;
+    const sentSchema = calls[0]?.[0]?.config.responseJsonSchema;
     expect(JSON.stringify(sentSchema)).not.toContain('minLength');
     expect(JSON.stringify(sentSchema)).not.toContain('maxLength');
   });

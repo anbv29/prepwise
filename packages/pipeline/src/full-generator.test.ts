@@ -205,9 +205,10 @@ describe('createFullKitGenerator', () => {
     ]);
   });
 
-  it('continues with explicit fallbacks when optional research is unavailable', async () => {
+  it('keeps free-tier generation complete without a discussion-search warning', async () => {
     const provider = new QueuedProvider([requirementDraft, questionDraft, flashcardDraft]);
     const generator = createFullKitGenerator({
+      discussionSearchDisabled: true,
       fetchText: async (url) => {
         throw new ResearchFetchError('REQUEST_TIMEOUT', 'Company research timed out.', url, true);
       },
@@ -232,11 +233,7 @@ describe('createFullKitGenerator', () => {
 
     expect(kit.company_brief.sources).toEqual([]);
     expect(kit.company_brief.summary).toContain('No public company pages');
-    expect(warningCodes).toEqual([
-      'REQUEST_TIMEOUT',
-      'DISCUSSION_SEARCH_NOT_CONFIGURED',
-      'GENERATION_SANITIZED',
-    ]);
+    expect(warningCodes).toEqual(['REQUEST_TIMEOUT', 'GENERATION_SANITIZED']);
     expect(provider.schemaNames).toEqual([
       'job_description_analysis',
       'interview_questions',

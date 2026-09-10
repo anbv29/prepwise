@@ -28,6 +28,7 @@ import type { SafeTextResponse } from './research/safe-fetch.js';
 import { buildSchedule } from './schedule.js';
 
 export interface FullKitGeneratorDependencies {
+  discussionSearchDisabled?: boolean;
   discussionProvider?: DiscussionSearchProvider;
   fetchText?: (url: string) => Promise<SafeTextResponse>;
   provider: StructuredLlmProvider;
@@ -71,19 +72,22 @@ async function researchDiscussions(
   company: string,
   roleTitle: string,
   provider?: DiscussionSearchProvider,
+  disabled = false,
 ): Promise<DiscussionResearchResult> {
   if (!provider) {
     return {
       queries: [],
       signals: [],
-      warnings: [
-        {
-          code: 'DISCUSSION_SEARCH_NOT_CONFIGURED',
-          message:
-            'Public interview discussion search was skipped because no search API key is configured.',
-          query: '',
-        },
-      ],
+      warnings: disabled
+        ? []
+        : [
+            {
+              code: 'DISCUSSION_SEARCH_NOT_CONFIGURED',
+              message:
+                'Public interview discussion search was skipped because no search API key is configured.',
+              query: '',
+            },
+          ],
     };
   }
 
@@ -123,12 +127,15 @@ export function createFullKitGenerator(dependencies: FullKitGeneratorDependencie
     await report(context, {
       stage: 'searching_discussions',
       percent: 30,
-      message: 'Searching public interview discussions.',
+      message: dependencies.discussionSearchDisabled
+        ? 'Preparing the role and company context.'
+        : 'Searching public interview discussions.',
     });
     const discussionResearchPromise = researchDiscussions(
       company,
       requirementResult.role.title,
       dependencies.discussionProvider,
+      dependencies.discussionSearchDisabled,
     );
     const [companyResearch, discussionResearch] = await Promise.all([
       companyResearchPromise,

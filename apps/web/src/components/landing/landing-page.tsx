@@ -78,8 +78,12 @@ const plans: Plan[] = [
   {
     name: 'Free',
     price: '₹0',
-    description: 'For preparing for one active opportunity.',
-    features: ['1 active interview kit', 'Company and role analysis', 'Questions and schedule'],
+    description: 'Complete AI preparation without public discussion search.',
+    features: [
+      'AI role and company-site analysis',
+      'Questions, flashcards, and schedule',
+      'Editing, practice, and progress',
+    ],
     cta: 'Start free',
   },
   {
@@ -89,8 +93,8 @@ const plans: Plan[] = [
     description: 'For an active job search with multiple interviews.',
     features: [
       '10 kits each month',
+      'Grounded public interview research',
       'Batch uploads',
-      'Expanded study sets',
       'Priority regeneration',
     ],
     cta: 'Choose Focus',
@@ -103,6 +107,7 @@ const plans: Plan[] = [
     description: 'For intensive preparation and career coaching.',
     features: [
       'Unlimited active kits',
+      'Grounded public interview research',
       'Answer library',
       'Advanced coverage',
       'Preparation exports',

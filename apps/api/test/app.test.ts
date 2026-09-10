@@ -31,6 +31,7 @@ function createAuthService() {
         _id: new ObjectId(),
         email: email.trim().toLowerCase(),
         passwordHash,
+        plan: 'free',
         createdAt: NOW,
         updatedAt: NOW,
       };
@@ -136,6 +137,7 @@ describe('authentication HTTP API', () => {
       .expect(201);
 
     expect(registerResponse.body.user.email).toBe('person@example.com');
+    expect(registerResponse.body.user.plan).toBe('free');
     expect(registerResponse.body.user).not.toHaveProperty('passwordHash');
     const setCookie = registerResponse.headers['set-cookie'] as unknown as string[];
     expect(setCookie[0]).toContain('HttpOnly');

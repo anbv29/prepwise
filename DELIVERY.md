@@ -40,8 +40,9 @@ Password: practice-ready
 To use the Express API and MongoDB-backed worker, copy `apps/api/.env.example` to
 `apps/api/.env`, copy `apps/web/.env.example` to `apps/web/.env.local`, set
 `NEXT_PUBLIC_USE_MOCK_API=false`, and provide MongoDB plus the selected LLM provider's key and
-model. Gemini mode uses the same key for generation and Google Search grounding. Missing grounding
-quota produces a warning rather than invented data. OpenAI mode can optionally use Brave Search.
+model. Free accounts use Gemini generation without discussion search. Focus and Pro accounts also
+use the same key for Google Search grounding. Missing paid grounding quota produces a warning
+rather than invented data. OpenAI mode can optionally use Brave Search for paid accounts.
 
 Start the complete web and API workspace with:
 

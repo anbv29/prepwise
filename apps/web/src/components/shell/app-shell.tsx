@@ -59,6 +59,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             <BrandMark /> Prepwise
           </Link>
           <div className="flex items-center gap-2 sm:gap-4">
+            <span className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold capitalize text-[var(--muted)]">
+              {userQuery.data.plan}
+            </span>
             <span className="hidden max-w-56 truncate text-sm text-[var(--muted)] sm:block">
               {userQuery.data.email}
             </span>

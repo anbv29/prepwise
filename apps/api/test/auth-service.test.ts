@@ -26,6 +26,7 @@ function createRepositories() {
           _id: new ObjectId(),
           email: email.trim().toLowerCase(),
           passwordHash,
+          plan: 'free',
           createdAt: NOW,
           updatedAt: NOW,
         };
@@ -87,6 +88,7 @@ describe('AuthService', () => {
     const session = repositories.records.sessions[0];
 
     expect(user?.email).toBe('person@example.com');
+    expect(result.user.plan).toBe('free');
     expect(user?.passwordHash).not.toBe('correct-horse-battery');
     await expect(verifyPassword('correct-horse-battery', user?.passwordHash ?? '')).resolves.toBe(
       true,

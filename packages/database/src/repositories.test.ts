@@ -36,7 +36,32 @@ describe('UserRepository', () => {
     const user = await repository.create(' Engineer@Example.COM ', 'password-hash');
 
     expect(user.email).toBe('engineer@example.com');
+    expect(user.plan).toBe('free');
     expect(insertOne).toHaveBeenCalledWith(user);
+  });
+
+  it('updates a subscription plan using a server-side repository operation', async () => {
+    const userId = new ObjectId();
+    const updatedUser: UserDocument = {
+      _id: userId,
+      email: 'engineer@example.com',
+      passwordHash: 'password-hash',
+      plan: 'focus',
+      createdAt: now,
+      updatedAt: now,
+    };
+    const findOneAndUpdate = vi.fn(async () => updatedUser);
+    const repository = new UserRepository(
+      collectionWithMethods<UserDocument>({ findOneAndUpdate }),
+      clock,
+    );
+
+    await expect(repository.updatePlan(userId, 'focus')).resolves.toEqual(updatedUser);
+    expect(findOneAndUpdate).toHaveBeenCalledWith(
+      { _id: userId },
+      { $set: { plan: 'focus', updatedAt: now } },
+      { returnDocument: 'after' },
+    );
   });
 });
 

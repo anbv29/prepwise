@@ -37,7 +37,15 @@ function readUser(): ApiUser | null {
   }
 
   try {
-    return JSON.parse(stored) as ApiUser;
+    const user = JSON.parse(stored) as Partial<ApiUser>;
+
+    if (typeof user.id !== 'string' || typeof user.email !== 'string') return null;
+
+    return {
+      id: user.id,
+      email: user.email,
+      plan: ['focus', 'pro'].includes(user.plan ?? '') ? (user.plan as 'focus' | 'pro') : 'free',
+    };
   } catch {
     window.localStorage.removeItem(SESSION_KEY);
     return null;
@@ -85,7 +93,7 @@ function writePracticeProgress(kitId: string, flashcardId: string, confidence: P
 }
 
 function writeUser(email: string) {
-  const user = { id: 'demo-user', email: email.trim().toLowerCase() };
+  const user: ApiUser = { id: 'demo-user', email: email.trim().toLowerCase(), plan: 'free' };
   window.localStorage.setItem(SESSION_KEY, JSON.stringify(user));
   return user;
 }

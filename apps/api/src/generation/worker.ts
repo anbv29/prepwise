@@ -1,3 +1,5 @@
+import type { ObjectId } from 'mongodb';
+
 import type {
   GenerationError,
   GenerationJobDocument,
@@ -24,6 +26,14 @@ export interface GenerationWorkerRepositories {
   generationJobs: WorkerJobRepository;
   kits: WorkerKitRepository;
 }
+
+export interface GenerationWorkerGenerators {
+  grounded: KitGenerator;
+  hasGroundedResearchAccess: (ownerId: ObjectId) => Promise<boolean>;
+  standard: KitGenerator;
+}
+
+type GenerationWorkerGeneratorInput = GenerationWorkerGenerators | KitGenerator;
 
 export class GenerationExecutionError extends Error {
   readonly code: string;
@@ -81,10 +91,18 @@ export class GenerationWorker {
 
   constructor(
     private readonly repositories: GenerationWorkerRepositories,
-    private readonly generateKit: KitGenerator,
+    private readonly generators: GenerationWorkerGeneratorInput,
     private readonly config: WorkerConfig,
     private readonly clock: () => Date = () => new Date(),
   ) {}
+
+  private async generatorFor(ownerId: ObjectId) {
+    if (typeof this.generators === 'function') return this.generators;
+
+    return (await this.generators.hasGroundedResearchAccess(ownerId))
+      ? this.generators.grounded
+      : this.generators.standard;
+  }
 
   start() {
     if (this.started) {
@@ -190,7 +208,8 @@ export class GenerationWorker {
         percent: 5,
         message: 'Starting kit generation.',
       });
-      const generatedKit = await this.generateKit(kitDocument.input, {
+      const generateKit = await this.generatorFor(job.ownerId);
+      const generatedKit = await generateKit(kitDocument.input, {
         researchedAt: this.clock().toISOString(),
         onProgress: async (progress) => {
           await this.report(job, progress);

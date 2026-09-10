@@ -140,13 +140,15 @@ scripts and layout noise, and returns plain text with source URLs, titles, trunc
 recoverable warnings. MongoDB caching stores successful pages for a day by default and failed
 requests briefly to avoid repeatedly hitting unavailable targets.
 
-Public interview signals use Gemini Google Search grounding when `LLM_PROVIDER=gemini`. OpenAI
-mode can optionally use the server-side Brave adapter. Both paths run separate site-restricted
-Reddit and Glassdoor queries; only genuine HTTPS hosts are accepted, markup is removed from
-snippets, URLs are deduplicated, and every signal retains its source query and URL. The API worker
-runs company requests through the MongoDB cache before crawling. If grounding quota is unavailable
-or a research source fails, the generator records a warning and continues with an explicit
-limited-research fallback rather than inventing material.
+Focus and Pro accounts use Gemini Google Search grounding when `LLM_PROVIDER=gemini`. Free accounts
+skip discussion search intentionally while retaining role extraction, company-site research,
+questions, flashcards, scheduling, editing, and practice. OpenAI mode can optionally use the
+server-side Brave adapter for paid accounts. Both search paths run separate site-restricted Reddit
+and Glassdoor queries; only genuine HTTPS hosts are accepted, markup is removed from snippets,
+URLs are deduplicated, and every signal retains its source query and URL. The plan entitlement is
+read from the server-side user record by the generation worker. If paid grounding quota is
+unavailable or a research source fails, the generator records a warning and continues with an
+explicit limited-research fallback rather than inventing material.
 
 ## Structured LLM and requirement extraction
 

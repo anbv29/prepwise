@@ -100,6 +100,7 @@ export interface PracticeProgress {
 export interface ApiUser {
   id: string;
   email: string;
+  plan: 'free' | 'focus' | 'pro';
 }
 
 export interface KitRecord {

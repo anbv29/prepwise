@@ -5,7 +5,7 @@ This application deploys as two Vercel projects from one npm-workspaces monorepo
 - `apps/web` is the public Next.js website.
 - `apps/api` is the authenticated Express API and AI generation function.
 - MongoDB Atlas provides durable users, sessions, kits, job state, research cache, and practice progress.
-- Gemini provides strict generation and Google Search grounding. OpenAI can use optional Brave Search.
+- Gemini provides strict generation for every plan and Google Search grounding for paid plans.
 
 The browser talks only to the API URL configured at build time. The API accepts browser requests
 only from its configured `WEB_ORIGIN`, and session cookies are HTTP-only and Secure in production.
@@ -28,9 +28,10 @@ npm run dev
 ```
 
 Open `http://localhost:3000`, create a new account, paste a real job description and company URL,
-and wait for the job page to finish. In Gemini mode the same key powers generation and grounded
-public interview research. If its Google Search grounding quota is unavailable, the kit still
-finishes with a limited-research note.
+and wait for the job page to finish. New accounts are Free and do not call Google Search grounding.
+Focus and Pro accounts use the same Gemini key for generation and grounded public interview
+research. If its grounding quota is unavailable, a paid user's kit still finishes with a
+limited-research note.
 
 To stop or restart the local database later:
 
@@ -49,6 +50,8 @@ does not delete local data.
 3. Keep the Gemini or OpenAI key and MongoDB credentials only in Vercel environment variables.
 4. Choose stable Vercel project names for the API and web app so their production URLs are known.
 5. Use Vercel CLI 20.1 or newer from the monorepo root. Git is not required for CLI deployment.
+6. Connect the payment provider's verified server-side webhook to `UserRepository.updatePlan`;
+   never accept a paid plan value directly from browser registration or pricing buttons.
 
 If Atlas must allow Vercel's dynamic outbound addresses, use strong unique database credentials and
 TLS. A Vercel plan with static egress plus a narrow Atlas IP allowlist is the stricter option.

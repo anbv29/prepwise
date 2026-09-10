@@ -123,6 +123,41 @@ describe('GenerationWorker', () => {
     expect(repositories.generationJobs.fail).not.toHaveBeenCalled();
   });
 
+  it('uses the standard generator when the owner has the free plan', async () => {
+    const standard = vi.fn(async () => createValidKit());
+    const grounded = vi.fn(async () => createValidKit());
+    const hasGroundedResearchAccess = vi.fn(async () => false);
+    const worker = new GenerationWorker(
+      repositories,
+      { grounded, hasGroundedResearchAccess, standard },
+      CONFIG,
+      () => NOW,
+    );
+
+    await worker.runOnce();
+
+    expect(hasGroundedResearchAccess).toHaveBeenCalledWith(job.ownerId);
+    expect(standard).toHaveBeenCalledOnce();
+    expect(grounded).not.toHaveBeenCalled();
+  });
+
+  it('uses grounded research only when the owner has a paid plan', async () => {
+    const standard = vi.fn(async () => createValidKit());
+    const grounded = vi.fn(async () => createValidKit());
+    const hasGroundedResearchAccess = vi.fn(async () => true);
+    const worker = new GenerationWorker(
+      repositories,
+      { grounded, hasGroundedResearchAccess, standard },
+      CONFIG,
+      () => NOW,
+    );
+
+    await worker.runOnce();
+
+    expect(grounded).toHaveBeenCalledOnce();
+    expect(standard).not.toHaveBeenCalled();
+  });
+
   it('persists a structured retryable failure on both records', async () => {
     const generateKit = vi.fn(async () => {
       throw new GenerationExecutionError('UPSTREAM_TIMEOUT', 'Research timed out.', true);

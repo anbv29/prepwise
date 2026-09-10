@@ -42,6 +42,9 @@ export const ResearchWarningSchema = z.object({
 });
 export type ResearchWarning = z.infer<typeof ResearchWarningSchema>;
 
+export const SubscriptionPlanSchema = z.enum(['free', 'focus', 'pro']);
+export type SubscriptionPlan = z.infer<typeof SubscriptionPlanSchema>;
+
 export const KitInputSchema = z.object({
   jobDescription: z.string(),
   companyUrl: z.string(),
@@ -60,6 +63,7 @@ export const UserDocumentSchema = z.object({
   _id: objectIdSchema,
   email: z.string().email(),
   passwordHash: z.string().min(1),
+  plan: SubscriptionPlanSchema.default('free'),
   createdAt: timestampSchema,
   updatedAt: timestampSchema,
 });

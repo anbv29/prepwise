@@ -97,6 +97,7 @@ export class UserRepository {
       _id: new ObjectId(),
       email: normalizeEmail(email),
       passwordHash,
+      plan: 'free',
       createdAt: now,
       updatedAt: now,
     });
@@ -112,6 +113,15 @@ export class UserRepository {
 
   async findById(userId: ObjectId) {
     const document = await this.users.findOne({ _id: userId });
+    return parseOptionalRecord(UserDocumentSchema, document, 'user');
+  }
+
+  async updatePlan(userId: ObjectId, plan: UserDocument['plan']) {
+    const document = await this.users.findOneAndUpdate(
+      { _id: userId },
+      { $set: { plan, updatedAt: this.clock() } },
+      { returnDocument: 'after' },
+    );
     return parseOptionalRecord(UserDocumentSchema, document, 'user');
   }
 }

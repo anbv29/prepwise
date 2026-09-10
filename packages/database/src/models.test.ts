@@ -24,6 +24,7 @@ describe('database document schemas', () => {
     });
 
     expect(result.success).toBe(true);
+    if (result.success) expect(result.data.plan).toBe('free');
   });
 
   it('requires session tokens to be stored as SHA-256-style hashes', () => {

@@ -131,7 +131,7 @@ function clearSessionCookie(response: Response, config: AuthConfig) {
 }
 
 function serializeUser(user: AuthenticatedUser) {
-  return { id: user.id.toHexString(), email: user.email };
+  return { id: user.id.toHexString(), email: user.email, plan: user.plan };
 }
 
 function serializeKit(document: KitDocument) {

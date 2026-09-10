@@ -148,12 +148,23 @@ async function createRuntime(): Promise<ApiRuntime> {
     discussionProvider = new BraveDiscussionSearchProvider(readBraveSearchConfig());
   }
 
-  const generateKit: KitGenerator = createFullKitGenerator({
+  const sharedGeneratorDependencies = {
     provider: llmProvider,
     researchConfig,
-    fetchText: (url) => cachedResearch.fetch(url),
+    fetchText: (url: string) => cachedResearch.fetch(url),
+  };
+  const standardGenerateKit: KitGenerator = createFullKitGenerator({
+    ...sharedGeneratorDependencies,
+    discussionSearchDisabled: true,
+  });
+  const groundedGenerateKit: KitGenerator = createFullKitGenerator({
+    ...sharedGeneratorDependencies,
     ...(discussionProvider ? { discussionProvider } : {}),
   });
+  const hasGroundedResearchAccess = async (ownerId: KitDocument['ownerId']) => {
+    const user = await repositories.users.findById(ownerId);
+    return user?.plan === 'focus' || user?.plan === 'pro';
+  };
   const authService = new AuthService(
     repositories.users,
     repositories.sessions,
@@ -164,7 +175,15 @@ async function createRuntime(): Promise<ApiRuntime> {
     repositories.generationJobs,
     workerConfig.maxAttempts,
   );
-  const worker = new GenerationWorker(repositories, generateKit, workerConfig);
+  const worker = new GenerationWorker(
+    repositories,
+    {
+      grounded: groundedGenerateKit,
+      hasGroundedResearchAccess,
+      standard: standardGenerateKit,
+    },
+    workerConfig,
+  );
   const runQueuedGeneration = async () => {
     await worker.recoverStale();
     await worker.runOnce();
@@ -185,6 +204,9 @@ async function createRuntime(): Promise<ApiRuntime> {
       throw new Error('A non-ready kit cannot be regenerated.');
     }
 
+    const generateKit = (await hasGroundedResearchAccess(document.ownerId))
+      ? groundedGenerateKit
+      : standardGenerateKit;
     const fresh = await generateKit(document.input, {
       researchedAt: new Date().toISOString(),
     });

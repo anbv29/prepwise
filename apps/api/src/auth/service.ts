@@ -21,6 +21,7 @@ type AuthSessionRepository = Pick<
 export interface AuthenticatedUser {
   id: ObjectId;
   email: string;
+  plan: UserDocument['plan'];
 }
 
 export interface IssuedSession {
@@ -44,7 +45,7 @@ export class InvalidCredentialsError extends Error {
 }
 
 function publicUser(user: UserDocument): AuthenticatedUser {
-  return { id: user._id, email: user.email };
+  return { id: user._id, email: user.email, plan: user.plan };
 }
 
 function isDuplicateKeyError(error: unknown) {
