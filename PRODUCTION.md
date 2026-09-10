@@ -5,7 +5,7 @@ This application deploys as two Vercel projects from one npm-workspaces monorepo
 - `apps/web` is the public Next.js website.
 - `apps/api` is the authenticated Express API and AI generation function.
 - MongoDB Atlas provides durable users, sessions, kits, job state, research cache, and practice progress.
-- OpenAI provides strict structured generation. Brave Search is optional.
+- Gemini or OpenAI provides strict structured generation. Brave Search is optional.
 
 The browser talks only to the API URL configured at build time. The API accepts browser requests
 only from its configured `WEB_ORIGIN`, and session cookies are HTTP-only and Secure in production.
@@ -20,8 +20,8 @@ The local files are intentionally ignored by source control:
 The checked-in templates are `apps/web/.env.example` and `apps/api/.env.example`.
 
 For the current workstation, a project-specific MongoDB 8 container named `prep-kit-mongo` is
-bound to `127.0.0.1:27017`, and both local environment files have already been created. Add the
-OpenAI key to `OPENAI_API_KEY` in `apps/api/.env`, then run from the repository root:
+bound to `127.0.0.1:27017`, and both local environment files have already been created. Choose an
+LLM provider in `apps/api/.env`, add only that provider's key, then run from the repository root:
 
 ```text
 npm run dev
@@ -45,7 +45,7 @@ does not delete local data.
 
 1. Create a MongoDB Atlas database user with access only to the application database.
 2. Obtain its `mongodb+srv://` connection string.
-3. Keep the OpenAI and MongoDB credentials only in Vercel environment variables.
+3. Keep the Gemini or OpenAI key and MongoDB credentials only in Vercel environment variables.
 4. Choose stable Vercel project names for the API and web app so their production URLs are known.
 5. Use Vercel CLI 20.1 or newer from the monorepo root. Git is not required for CLI deployment.
 
@@ -64,8 +64,9 @@ MONGODB_DATABASE=interview_prep
 WEB_ORIGIN=https://<stable-web-project-name>.vercel.app
 SESSION_TTL_DAYS=7
 SESSION_COOKIE_NAME=prep_session
-OPENAI_API_KEY=<secret>
-OPENAI_MODEL=gpt-5.5
+LLM_PROVIDER=gemini
+GEMINI_API_KEY=<secret>
+GEMINI_MODEL=gemini-3.5-flash
 LLM_TIMEOUT_MS=60000
 LLM_MAX_RETRIES=2
 WORKER_STALE_AFTER_MS=900000
@@ -78,6 +79,9 @@ RESEARCH_REQUEST_TIMEOUT_MS=10000
 RESEARCH_CACHE_TTL_MS=86400000
 RESEARCH_FAILURE_CACHE_TTL_MS=300000
 ```
+
+To use OpenAI instead, set `LLM_PROVIDER=openai`, `OPENAI_API_KEY`, and `OPENAI_MODEL=gpt-5.5`
+instead of the three Gemini variables.
 
 Do not set `ALLOW_PRIVATE_NETWORKS=true` on Vercel. Add `BRAVE_SEARCH_API_KEY` only if discussion
 search is wanted.

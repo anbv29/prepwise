@@ -16,6 +16,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@google/genai": "^2.21.0",
     "@prep-kit/contracts": "*",
     "cheerio": "^1.2.0",
     "openai": "^7.12.1",

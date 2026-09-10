@@ -151,12 +151,11 @@ than inventing material.
 
 ## Structured LLM and requirement extraction
 
-`packages/pipeline/src/llm` defines a provider-neutral structured-generation contract and an
-OpenAI Responses API implementation. The adapter uses strict Zod Structured Outputs, disables
-provider-side response storage, records response/model/token metadata, applies explicit request
-timeouts, and retries only transient connection, throttling, conflict, or server failures with
-bounded exponential backoff. API keys remain server-side. Set `OPENAI_API_KEY` and an explicit
-`OPENAI_MODEL`; generic `LLM_API_KEY` and `LLM_MODEL` names remain supported.
+`packages/pipeline/src/llm` defines a provider-neutral structured-generation contract with Gemini
+and OpenAI implementations. Both adapters validate model output against the same Zod schemas,
+record model/token metadata, apply explicit request timeouts, and retry only transient failures
+with bounded exponential backoff. API keys remain server-side. Select a provider with
+`LLM_PROVIDER=gemini` or `LLM_PROVIDER=openai`, then configure its matching key and model.
 
 The first model stage extracts role title, seniority, responsibilities, and atomic technical,
 behavioural, or domain requirements from the job description. The job description is passed as

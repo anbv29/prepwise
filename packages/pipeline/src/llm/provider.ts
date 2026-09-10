@@ -16,7 +16,7 @@ export interface LlmGenerationMetadata {
   inputTokens: number | null;
   model: string;
   outputTokens: number | null;
-  provider: 'openai';
+  provider: 'gemini' | 'openai';
   responseId: string;
 }
 

@@ -5,6 +5,7 @@ export * from './llm/config.js';
 export * from './llm/company-brief-generation.js';
 export * from './llm/flashcard-generation.js';
 export * from './llm/generation-shared.js';
+export * from './llm/gemini-provider.js';
 export * from './llm/kit-section-generation.js';
 export * from './llm/provider.js';
 export * from './llm/question-generation.js';

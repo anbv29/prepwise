@@ -13,8 +13,11 @@ import {
   BraveDiscussionSearchProvider,
   buildSchedule,
   createFullKitGenerator,
+  GeminiStructuredLlmProvider,
   OpenAiStructuredLlmProvider,
   readBraveSearchConfig,
+  readGeminiLlmConfig,
+  readLlmProviderName,
   readOpenAiLlmConfig,
   readResearchConfig,
   safeFetchText,
@@ -125,7 +128,10 @@ async function createRuntime(): Promise<ApiRuntime> {
   const authConfig = readAuthConfig();
   const workerConfig = readWorkerConfig();
   const researchConfig = readResearchConfig();
-  const llmProvider = new OpenAiStructuredLlmProvider(readOpenAiLlmConfig());
+  const llmProvider =
+    readLlmProviderName() === 'gemini'
+      ? new GeminiStructuredLlmProvider(readGeminiLlmConfig())
+      : new OpenAiStructuredLlmProvider(readOpenAiLlmConfig());
   const cachedResearch = new CachedResearchFetcher(
     repositories.researchCache,
     (url) => safeFetchText(url, researchConfig),
