@@ -5,7 +5,7 @@ const target = process.argv[2];
 
 const requiredByTarget = {
   api: ['MONGODB_URI', 'WEB_ORIGIN'],
-  web: ['NEXT_PUBLIC_API_ORIGIN'],
+  web: ['API_ORIGIN'],
 };
 
 if (!(target in requiredByTarget)) {
@@ -45,7 +45,7 @@ if (missing.length > 0) {
   process.exit(1);
 }
 
-for (const name of target === 'api' ? ['MONGODB_URI', 'WEB_ORIGIN'] : ['NEXT_PUBLIC_API_ORIGIN']) {
+for (const name of target === 'api' ? ['MONGODB_URI', 'WEB_ORIGIN'] : ['API_ORIGIN']) {
   try {
     new URL(process.env[name]);
   } catch {

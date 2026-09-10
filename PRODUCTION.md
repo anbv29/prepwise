@@ -7,8 +7,10 @@ This application deploys as two Vercel projects from one npm-workspaces monorepo
 - MongoDB Atlas provides durable users, sessions, kits, job state, research cache, and practice progress.
 - Gemini provides strict generation for every plan and Google Search grounding for paid plans.
 
-The browser talks only to the API URL configured at build time. The API accepts browser requests
-only from its configured `WEB_ORIGIN`, and session cookies are HTTP-only and Secure in production.
+The browser calls `/api` on the web app's own origin. Next.js securely proxies those requests to the
+API URL configured at build time. This keeps authentication first-party even when the two Vercel
+projects use different `*.vercel.app` addresses. The API accepts browser requests only from its
+configured `WEB_ORIGIN`, and session cookies are HTTP-only and Secure in production.
 
 ## Real local run
 
@@ -102,11 +104,11 @@ Directory. Add these Production and Preview variables before building:
 
 ```text
 NEXT_PUBLIC_USE_MOCK_API=false
-NEXT_PUBLIC_API_ORIGIN=https://<deployed-api-project>.vercel.app
+API_ORIGIN=https://<deployed-api-project>.vercel.app
 ```
 
-These values are public browser configuration, not secrets. Any change requires a new deployment
-because Next.js embeds `NEXT_PUBLIC_` values during the build.
+`API_ORIGIN` is server-side deployment configuration. It drives the same-origin Next.js rewrite and
+is not exposed to browser JavaScript. Any change requires a new web deployment.
 
 ## Release order
 

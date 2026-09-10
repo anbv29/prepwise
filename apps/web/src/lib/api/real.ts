@@ -1,9 +1,13 @@
 import type { ApiClient } from './types';
 import { ApiClientError } from './types';
 
+// Production requests stay on the web app's origin and are securely proxied to
+// the API by Next.js. The public-origin fallback keeps existing local setups
+// working without exposing a production API address to browser code.
 const API_ORIGIN =
-  process.env.NEXT_PUBLIC_API_ORIGIN ??
-  (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000');
+  process.env.NODE_ENV === 'production'
+    ? ''
+    : (process.env.NEXT_PUBLIC_API_ORIGIN ?? 'http://localhost:4000');
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_ORIGIN}${path}`, {

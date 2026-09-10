@@ -1,8 +1,21 @@
 import type { NextConfig } from 'next';
 
+const apiOrigin =
+  process.env.API_ORIGIN?.trim() || process.env.NEXT_PUBLIC_API_ORIGIN?.trim();
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  async rewrites() {
+    if (!apiOrigin) return [];
+
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${apiOrigin.replace(/\/$/u, '')}/api/:path*`,
+      },
+    ];
+  },
   async headers() {
     return [
       {
