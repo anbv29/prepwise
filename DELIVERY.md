@@ -3,7 +3,7 @@
 ## Demo mode
 
 The frontend is fully demonstrable without MongoDB, OpenAI, Brave Search, or the API server.
-Keep the following value in `.env`:
+Keep the following value in `apps/web/.env.local`:
 
 ```text
 NEXT_PUBLIC_USE_MOCK_API=true
@@ -37,7 +37,8 @@ Password: practice-ready
 
 ## Live services
 
-To use the Express API and MongoDB-backed worker, copy `.env.example` to `.env`, set
+To use the Express API and MongoDB-backed worker, copy `apps/api/.env.example` to
+`apps/api/.env`, copy `apps/web/.env.example` to `apps/web/.env.local`, set
 `NEXT_PUBLIC_USE_MOCK_API=false`, and provide `MONGODB_URI`, `OPENAI_API_KEY`, and `OPENAI_MODEL`.
 `BRAVE_SEARCH_API_KEY` is optional; missing public discussion research produces a warning rather
 than invented data.
@@ -73,3 +74,8 @@ npm run build
 ```
 
 The supported runtime is Node.js 22 or newer.
+
+## Production
+
+See `PRODUCTION.md` for the local real-data gate, Vercel project layout, environment variables,
+release order, and post-deployment smoke tests.

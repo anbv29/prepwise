@@ -1,7 +1,9 @@
 import type { ApiClient } from './types';
 import { ApiClientError } from './types';
 
-const API_ORIGIN = process.env.NEXT_PUBLIC_API_ORIGIN ?? 'http://localhost:4000';
+const API_ORIGIN =
+  process.env.NEXT_PUBLIC_API_ORIGIN ??
+  (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000');
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_ORIGIN}${path}`, {

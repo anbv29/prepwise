@@ -13,6 +13,7 @@
     "@prep-kit/contracts": "*",
     "@prep-kit/database": "*",
     "@prep-kit/pipeline": "*",
+    "@vercel/functions": "^3.9.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "zod": "^4.5.4"

@@ -100,9 +100,22 @@ describe('authentication HTTP API', () => {
       authConfig,
       authService: createAuthService(),
       generationRequests,
+      regenerateKit: vi.fn(async () => {
+        throw new Error('Regeneration was not expected in this test.');
+      }),
       repositories: {
-        kits: { findOwnedById, listForOwner },
+        kits: {
+          findOwnedById,
+          listForOwner,
+          updateOwnedReadyKit: vi.fn(async () => null),
+        },
         generationJobs: { findOwnedById: findOwnedJobById },
+        practiceProgress: {
+          findForKit: vi.fn(async () => null),
+          recordAttempt: vi.fn(async () => {
+            throw new Error('Practice progress was not expected in this test.');
+          }),
+        },
       },
     });
   });

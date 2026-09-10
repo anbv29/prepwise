@@ -1,85 +1,57 @@
 import 'dotenv/config';
 
-import {
-  connectDatabase,
-  createDatabaseRepositories,
-  readDatabaseConfig,
-} from '@prep-kit/database';
-import {
-  BraveDiscussionSearchProvider,
-  createFullKitGenerator,
-  OpenAiStructuredLlmProvider,
-  readBraveSearchConfig,
-  readOpenAiLlmConfig,
-  readResearchConfig,
-  safeFetchText,
-} from '@prep-kit/pipeline';
+import express, { type NextFunction, type Request, type Response } from 'express';
 
-import { createApp } from './app.js';
-import { readAuthConfig } from './auth/config.js';
-import { AuthService } from './auth/service.js';
-import { readWorkerConfig } from './generation/config.js';
-import { CachedResearchFetcher } from './generation/research-cache.js';
-import { GenerationRequestService } from './generation/requests.js';
-import { GenerationWorker } from './generation/worker.js';
+import { getApiRuntime } from './runtime.js';
 
 const parsedPort = Number.parseInt(process.env.API_PORT ?? '4000', 10);
 const port = Number.isNaN(parsedPort) ? 4000 : parsedPort;
+const gateway = express();
 
-async function startServer() {
-  const databaseConnection = await connectDatabase(readDatabaseConfig());
-  const repositories = createDatabaseRepositories(databaseConnection.database);
-  const authConfig = readAuthConfig();
-  const workerConfig = readWorkerConfig();
-  const researchConfig = readResearchConfig();
-  const llmProvider = new OpenAiStructuredLlmProvider(readOpenAiLlmConfig());
-  const cachedResearch = new CachedResearchFetcher(
-    repositories.researchCache,
-    (url) => safeFetchText(url, researchConfig),
-    researchConfig,
-  );
-  const hasDiscussionSearchKey = Boolean(
-    process.env.BRAVE_SEARCH_API_KEY?.trim() || process.env.SEARCH_API_KEY?.trim(),
-  );
-  const generateKit = createFullKitGenerator({
-    provider: llmProvider,
-    researchConfig,
-    fetchText: (url) => cachedResearch.fetch(url),
-    ...(hasDiscussionSearchKey
-      ? { discussionProvider: new BraveDiscussionSearchProvider(readBraveSearchConfig()) }
-      : {}),
+gateway.use((request: Request, response: Response, next: NextFunction) => {
+  void getApiRuntime()
+    .then((runtime) => runtime.app(request, response, next))
+    .catch(next);
+});
+
+gateway.use((error: unknown, _request: Request, response: Response, _next: NextFunction) => {
+  void _next;
+  console.error('API initialization failed.', error);
+  response.status(503).json({
+    error: {
+      code: 'SERVICE_NOT_CONFIGURED',
+      message: 'The API is not fully configured or its database is unavailable.',
+    },
   });
-  const authService = new AuthService(
-    repositories.users,
-    repositories.sessions,
-    authConfig.sessionTtlMs,
-  );
-  const generationRequests = new GenerationRequestService(
-    repositories.kits,
-    repositories.generationJobs,
-    workerConfig.maxAttempts,
-  );
-  const generationWorker = new GenerationWorker(repositories, generateKit, workerConfig);
-  const app = createApp({ authConfig, authService, generationRequests, repositories });
-  const server = app.listen(port, () => {
+});
+
+export default gateway;
+
+if (process.env.VERCEL !== '1') {
+  const server = gateway.listen(port, () => {
     console.log(`API listening on http://localhost:${port}`);
   });
-  generationWorker.start();
   let isShuttingDown = false;
 
-  const shutdown = () => {
-    if (isShuttingDown) {
-      return;
-    }
+  void getApiRuntime()
+    .then((runtime) => runtime.worker.start())
+    .catch((error: unknown) => {
+      console.error('API failed to initialize.', error);
+      process.exitCode = 1;
+    });
 
+  const shutdown = () => {
+    if (isShuttingDown) return;
     isShuttingDown = true;
-    void Promise.all([
-      generationWorker.stop(),
-      new Promise<void>((resolve, reject) => {
-        server.close((error) => (error ? reject(error) : resolve()));
-      }),
-    ])
-      .then(() => databaseConnection.close())
+
+    void getApiRuntime()
+      .then(async (runtime) => {
+        await runtime.worker.stop();
+        await new Promise<void>((resolve, reject) => {
+          server.close((error) => (error ? reject(error) : resolve()));
+        });
+        await runtime.close();
+      })
       .then(() => process.exit(0))
       .catch((error: unknown) => {
         console.error('API shutdown failed.', error);
@@ -90,8 +62,3 @@ async function startServer() {
   process.once('SIGINT', shutdown);
   process.once('SIGTERM', shutdown);
 }
-
-startServer().catch((error: unknown) => {
-  console.error('API failed to start.', error);
-  process.exitCode = 1;
-});

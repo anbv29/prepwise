@@ -33,7 +33,8 @@ npm run build
 npm run evaluate -- --input <cases.json> --output <kits.json>
 ```
 
-Copy `.env.example` to `.env` before running services that require external configuration.
+Copy `apps/api/.env.example` to `apps/api/.env` and `apps/web/.env.example` to
+`apps/web/.env.local` before running services that require external configuration.
 
 The web/API persistence layer uses `MONGODB_URI` and an optional `MONGODB_DATABASE` (default:
 `interview_prep`). The batch evaluator remains independent from MongoDB because the assessment
@@ -109,8 +110,9 @@ instead of duplicating generation work. `GET /api/jobs/:jobId` exposes owner-sco
 stage, percentage, attempt count, and structured failure information. Retryable failed work can
 be requeued with `POST /api/jobs/:jobId/retry`.
 
-The API runs a single-concurrency MongoDB-backed worker. Atomic oldest-first claiming lets
-multiple application instances share the queue without claiming the same queued record. Jobs
+Locally, the API runs a single-concurrency MongoDB-backed worker. On Vercel, a queued generation
+is attached to the function lifecycle while MongoDB remains the durable source of job state.
+Atomic oldest-first claiming lets multiple application instances share the queue without claiming the same queued record. Jobs
 and kits move together through queued, generating, complete, or failed states. The worker
 recovers interrupted jobs after `WORKER_STALE_AFTER_MS`, enforces `WORKER_MAX_ATTEMPTS`, drains
 cleanly during shutdown, and polls at `WORKER_POLL_INTERVAL_MS`.
@@ -217,3 +219,4 @@ the real client exposes the same typed contract for persistent API-backed progre
 
 See `DELIVERY.md` for the demo credentials, recommended evaluator walkthrough, final verification
 commands, and the configuration required to switch from fixtures to the live API.
+See `PRODUCTION.md` for the Vercel architecture and release runbook.

@@ -24,8 +24,8 @@ export function createApp(dependencies: AppDependencies) {
     if (origin === dependencies.authConfig.webOrigin) {
       response.set({
         'Access-Control-Allow-Credentials': 'true',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Idempotency-Key',
+        'Access-Control-Allow-Methods': 'GET,POST,PATCH,PUT,OPTIONS',
         'Access-Control-Allow-Origin': origin,
         Vary: 'Origin',
       });

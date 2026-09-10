@@ -271,6 +271,22 @@ export class KitRepository {
 
     return result.matchedCount > 0;
   }
+
+  async updateOwnedReadyKit(ownerId: ObjectId, kitId: ObjectId, kit: Kit) {
+    const result = await this.kits.findOneAndUpdate(
+      { _id: kitId, ownerId, status: 'ready' },
+      {
+        $set: {
+          kit: KitSchema.parse(kit),
+          updatedAt: this.clock(),
+        },
+        $inc: { version: 1 },
+      },
+      { returnDocument: 'after' },
+    );
+
+    return parseOptionalRecord(KitDocumentSchema, result, 'kit');
+  }
 }
 
 export interface CreateGenerationJobInput {
@@ -566,6 +582,41 @@ export class PracticeProgressRepository {
 
     await this.save(document);
     return document;
+  }
+
+  async recordAttempt(ownerId: ObjectId, kitId: ObjectId, flashcardId: string, confidence: number) {
+    const current =
+      (await this.findForKit(ownerId, kitId)) ?? (await this.createEmpty(ownerId, kitId));
+    const now = this.clock();
+    const existing = current.cards.find((card) => card.flashcardId === flashcardId);
+    const cards = existing
+      ? current.cards.map((card) =>
+          card.flashcardId === flashcardId
+            ? {
+                ...card,
+                attempts: card.attempts + 1,
+                confidence,
+                lastPracticedAt: now,
+              }
+            : card,
+        )
+      : [
+          ...current.cards,
+          {
+            flashcardId,
+            confidence,
+            attempts: 1,
+            lastPracticedAt: now,
+          },
+        ];
+    const updated = PracticeProgressDocumentSchema.parse({
+      ...current,
+      cards,
+      updatedAt: now,
+    });
+
+    await this.save(updated);
+    return updated;
   }
 }
 
