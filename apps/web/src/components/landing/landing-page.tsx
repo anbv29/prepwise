@@ -117,15 +117,8 @@ const plans: Plan[] = [
   },
 ];
 
-function AccountActions() {
-  const user = useQuery({
-    queryKey: ['current-user'],
-    queryFn: api.getCurrentUser,
-    retry: false,
-    staleTime: 60_000,
-  });
-
-  if (user.data) {
+function AccountActions({ isAuthenticated }: { isAuthenticated: boolean }) {
+  if (isAuthenticated) {
     return (
       <Link className="primary-action min-h-10 px-4 py-2" href="/dashboard">
         Workspace <ArrowRight size={16} />
@@ -233,6 +226,13 @@ function ProductFolio() {
 
 export function LandingPage() {
   const router = useRouter();
+  const currentUser = useQuery({
+    queryKey: ['current-user'],
+    queryFn: api.getCurrentUser,
+    retry: false,
+    staleTime: 60_000,
+  });
+  const workspaceHref = currentUser.data ? '/dashboard' : '/register';
 
   useEffect(() => {
     router.prefetch('/login');
@@ -259,7 +259,7 @@ export function LandingPage() {
                 {navigation.map(([label, href]) => <a className="rounded-lg px-3 py-2.5 text-sm font-semibold hover:bg-[var(--surface-subtle)]" href={href} key={href}>{label}</a>)}
               </nav>
             </details>
-            <AccountActions />
+            <AccountActions isAuthenticated={Boolean(currentUser.data)} />
           </div>
         </div>
       </header>
@@ -270,7 +270,7 @@ export function LandingPage() {
             <div className="max-w-2xl page-enter">
               <h1 className="editorial-title text-balance text-5xl sm:text-6xl xl:text-[4.75rem]">Prepare for the role, not just the interview.</h1>
               <p className="mt-7 max-w-xl text-lg leading-8 text-[var(--ink-secondary)]">Research the company. Map the requirements. Practice what matters. Prepwise turns the source material into a plan for the days you have left.</p>
-              <div className="mt-9 flex flex-wrap items-center gap-3"><Link className="primary-action px-6" href="/register">Build my preparation kit <ArrowRight size={18} /></Link><a className="secondary-action px-6" href="#how-it-works">See how it works</a></div>
+              <div className="mt-9 flex flex-wrap items-center gap-3"><Link className="primary-action px-6" href={workspaceHref}>Build my preparation kit <ArrowRight size={18} /></Link><a className="secondary-action px-6" href="#how-it-works">See how it works</a></div>
               <dl className="mt-12 grid max-w-xl grid-cols-3 border-y border-[var(--divider)] py-5">
                 {[
                   ['6', 'real pipeline stages'],
@@ -316,7 +316,7 @@ export function LandingPage() {
           <div className="mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:py-28">
             <div className="grid gap-6 lg:grid-cols-[0.7fr_1fr] lg:items-end"><h2 className="editorial-title text-4xl sm:text-5xl">Choose the depth that matches your search.</h2><p className="max-w-2xl text-[var(--muted)]">Start with one complete kit. Focus and Pro upgrades will open after secure checkout is connected.</p></div>
             <div className="mt-14 grid overflow-hidden rounded-2xl border border-[var(--border)] lg:grid-cols-3">
-              {plans.map((plan, index) => <article className={`flex min-h-[430px] flex-col p-7 sm:p-8 ${index > 0 ? 'border-t border-[var(--border)] lg:border-l lg:border-t-0' : ''} ${plan.featured ? 'bg-[var(--surface-dark)] text-[var(--on-dark)]' : 'bg-[var(--surface-elevated)]'}`} key={plan.name}><div className="flex items-center justify-between gap-4"><h3 className="font-display text-2xl font-semibold">{plan.name}</h3>{plan.featured ? <span className="text-xs font-semibold text-[#e8c6b5]">Most useful</span> : null}</div><p className="mt-8"><span className="font-display text-5xl font-semibold tabular-nums">{plan.price}</span>{plan.suffix ? <span className="ml-1 text-sm opacity-70">{plan.suffix}</span> : null}</p><p className={`mt-4 min-h-14 ${plan.featured ? 'text-[#d8c8bf]' : 'text-[var(--muted)]'}`}>{plan.description}</p><ul className="mt-8 space-y-3 text-sm">{plan.features.map((feature) => <li className="flex gap-3" key={feature}><Check className={plan.featured ? 'text-[#9fb39b]' : 'text-[var(--success)]'} size={17} /><span>{feature}</span></li>)}</ul>{plan.available ? <Link className="primary-action mt-auto w-full" href="/register">{plan.cta}</Link> : <button className={`secondary-action mt-auto w-full ${plan.featured ? 'border-white/30 bg-transparent text-white' : ''}`} disabled type="button">{plan.cta}</button>}</article>)}
+              {plans.map((plan, index) => <article className={`flex min-h-[430px] flex-col p-7 sm:p-8 ${index > 0 ? 'border-t border-[var(--border)] lg:border-l lg:border-t-0' : ''} ${plan.featured ? 'bg-[var(--surface-dark)] text-[var(--on-dark)]' : 'bg-[var(--surface-elevated)]'}`} key={plan.name}><div className="flex items-center justify-between gap-4"><h3 className="font-display text-2xl font-semibold">{plan.name}</h3>{plan.featured ? <span className="text-xs font-semibold text-[#e8c6b5]">Most useful</span> : null}</div><p className="mt-8"><span className="font-display text-5xl font-semibold tabular-nums">{plan.price}</span>{plan.suffix ? <span className="ml-1 text-sm opacity-70">{plan.suffix}</span> : null}</p><p className={`mt-4 min-h-14 ${plan.featured ? 'text-[#d8c8bf]' : 'text-[var(--muted)]'}`}>{plan.description}</p><ul className="mt-8 space-y-3 text-sm">{plan.features.map((feature) => <li className="flex gap-3" key={feature}><Check className={plan.featured ? 'text-[#9fb39b]' : 'text-[var(--success)]'} size={17} /><span>{feature}</span></li>)}</ul>{plan.available ? <Link className="primary-action mt-auto w-full" href={workspaceHref}>{plan.cta}</Link> : <button className={`secondary-action mt-auto w-full ${plan.featured ? 'border-white/30 bg-transparent text-white' : ''}`} disabled type="button">{plan.cta}</button>}</article>)}
             </div>
           </div>
         </section>
