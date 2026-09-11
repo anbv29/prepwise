@@ -77,7 +77,7 @@ interface Plan {
 const plans: Plan[] = [
   {
     name: 'Free',
-    price: '₹0',
+    price: '$0',
     description: 'Complete AI preparation without public discussion search.',
     features: [
       'AI role and company-site analysis',
@@ -89,7 +89,7 @@ const plans: Plan[] = [
   },
   {
     name: 'Focus',
-    price: '₹499',
+    price: '$5.99',
     suffix: '/month',
     description: 'For an active job search with multiple interviews.',
     features: [
@@ -103,7 +103,7 @@ const plans: Plan[] = [
   },
   {
     name: 'Pro',
-    price: '₹999',
+    price: '$11.99',
     suffix: '/month',
     description: 'For intensive preparation and career coaching.',
     features: [
