@@ -29,7 +29,7 @@ interface BatchPreviewRow extends BatchKitInput {
 }
 
 const fieldClass =
-  'mt-2 min-h-12 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 text-base text-[var(--ink)] transition-colors placeholder:text-[var(--muted)] hover:border-[var(--border-strong)] focus:border-[var(--accent)]';
+  'paper-field mt-2 px-4 text-base';
 
 function parseCsv(text: string) {
   const rows: string[][] = [];
@@ -154,22 +154,28 @@ export function NewKitForm({ initialMode = 'single' }: { initialMode?: 'single' 
   }
 
   return (
-    <main className="mx-auto max-w-4xl px-5 py-9 sm:px-8 sm:py-12">
+    <main className="mx-auto max-w-5xl px-5 py-9 sm:px-8 sm:py-14">
       <Link
         className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--muted)] hover:text-[var(--ink)]"
         href="/dashboard"
       >
         <ArrowLeft size={16} /> Back to kits
       </Link>
-      <div className="mt-9 border-b border-[var(--border)] pb-8">
-        <h1 className="text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">Build a new kit</h1>
-        <p className="mt-3 max-w-2xl text-[var(--muted)]">
+      <div className="mt-9 grid gap-5 border-b border-[var(--divider)] pb-9 lg:grid-cols-[0.7fr_1fr] lg:items-end">
+        <h1 className="editorial-title text-4xl sm:text-5xl">Build a new preparation folio.</h1>
+        <p className="max-w-2xl text-[var(--ink-secondary)]">
           Add the source material once. You can refine every generated section later.
         </p>
       </div>
 
+      <div className="mt-8 grid gap-3 border-y border-[var(--divider)] py-5 text-sm text-[var(--muted)] sm:grid-cols-3">
+        <span>Company research with sources</span>
+        <span>Requirement-linked practice</span>
+        <span>Exact-day preparation schedule</span>
+      </div>
+
       <Tabs
-        className="pt-8"
+        className="pt-9"
         onValueChange={(value) => {
           if (value === 'single' || value === 'batch') setMode(value);
         }}
@@ -182,7 +188,7 @@ export function NewKitForm({ initialMode = 'single' }: { initialMode?: 'single' 
 
         <TabsContent value="single">
           <form
-            className="space-y-7"
+            className="paper-panel space-y-7 p-5 sm:p-8"
             onSubmit={form.handleSubmit((values) => createSingle.mutate(values))}
           >
             <label className="block font-semibold" htmlFor="job-description">
@@ -192,7 +198,7 @@ export function NewKitForm({ initialMode = 'single' }: { initialMode?: 'single' 
                 gaps.
               </span>
               <textarea
-                className={`${fieldClass} min-h-64 resize-y py-3 leading-7`}
+                className={`${fieldClass} min-h-72 resize-y py-4 leading-7`}
                 id="job-description"
                 placeholder="Paste the job description here…"
                 {...form.register('jobDescription')}
@@ -222,7 +228,7 @@ export function NewKitForm({ initialMode = 'single' }: { initialMode?: 'single' 
               </label>
               <fieldset>
                 <legend className="font-semibold">Days until interview</legend>
-                <div className="mt-2 grid min-h-12 grid-cols-[48px_1fr_48px] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+                <div className="mt-2 grid min-h-12 grid-cols-[48px_1fr_48px] overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)]">
                   <button
                     aria-label="Decrease preparation days"
                     className="grid place-items-center border-r border-[var(--border)] text-[var(--muted)] hover:bg-[var(--surface-subtle)] disabled:cursor-not-allowed disabled:opacity-35"
@@ -250,7 +256,7 @@ export function NewKitForm({ initialMode = 'single' }: { initialMode?: 'single' 
 
             <div className="flex justify-end border-t border-[var(--border)] pt-7">
               <button
-                className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-[var(--accent)] px-6 font-semibold text-white hover:opacity-90 disabled:opacity-60"
+                className="primary-action px-6"
                 disabled={createSingle.isPending}
                 type="submit"
               >
@@ -264,13 +270,13 @@ export function NewKitForm({ initialMode = 'single' }: { initialMode?: 'single' 
         </TabsContent>
 
         <TabsContent value="batch">
-          <div className="space-y-6">
+          <div className="paper-panel space-y-6 p-5 sm:p-8">
             <button
-              className="flex min-h-48 w-full flex-col items-center justify-center rounded-xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] px-6 text-center transition-colors hover:border-[var(--accent)]"
+              className="flex min-h-52 w-full flex-col items-center justify-center rounded-xl border border-dashed border-[var(--border-strong)] bg-[var(--surface-elevated)] px-6 text-center transition-colors hover:border-[var(--accent)]"
               onClick={() => fileInput.current?.click()}
               type="button"
             >
-              <span className="grid h-11 w-11 place-items-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]">
+              <span className="grid h-11 w-11 place-items-center rounded-full border border-[var(--border)] text-[var(--accent)]">
                 <Upload size={20} />
               </span>
               <span className="mt-4 font-semibold">Choose a JSON or CSV file</span>
@@ -334,7 +340,7 @@ export function NewKitForm({ initialMode = 'single' }: { initialMode?: 'single' 
 
             <div className="flex justify-end border-t border-[var(--border)] pt-7">
               <button
-                className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-[var(--accent)] px-6 font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                className="primary-action px-6"
                 disabled={
                   createBatch.isPending ||
                   batchRows.length === 0 ||

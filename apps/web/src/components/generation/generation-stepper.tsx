@@ -192,14 +192,14 @@ export function GenerationStepper({ jobId, kitId }: { jobId?: string; kitId: str
   const failed = job.status === 'failed';
 
   return (
-    <div className="mx-auto w-full max-w-xl">
-      <div className="mb-10 text-center">
+    <div className="paper-panel mx-auto w-full max-w-2xl p-6 sm:p-10">
+      <div className="mb-10 border-b border-[var(--divider)] pb-8 text-center">
         <p
           className={`text-sm font-semibold ${failed ? 'text-[var(--danger)]' : complete ? 'text-[var(--success)]' : 'text-[var(--accent)]'}`}
         >
           {failed ? 'Needs attention' : complete ? 'Ready to prepare' : 'Building your kit'}
         </p>
-        <h1 className="mt-3 text-balance text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">
+        <h1 className="editorial-title mt-3 text-balance text-4xl sm:text-5xl">
           {failed
             ? 'One step could not finish.'
             : complete
@@ -221,7 +221,7 @@ export function GenerationStepper({ jobId, kitId }: { jobId?: string; kitId: str
         </div>
       </div>
 
-      <ol>
+      <ol className="mx-auto max-w-xl">
         {steps.map((step, index) => (
           <motion.li
             aria-current={step.status === 'running' ? 'step' : undefined}
@@ -259,7 +259,7 @@ export function GenerationStepper({ jobId, kitId }: { jobId?: string; kitId: str
       <div className="mt-5 flex justify-center">
         {complete ? (
           <Link
-            className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-[var(--accent)] px-6 font-semibold text-white"
+            className="primary-action px-6"
             href={`/kits/${kitId}`}
           >
             Open your kit <ArrowRight size={18} />
@@ -277,7 +277,7 @@ export function GenerationStepper({ jobId, kitId }: { jobId?: string; kitId: str
         ) : null}
         {failed && (!jobId || !job.error?.retryable) ? (
           <Link
-            className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-[var(--border)] px-6 font-semibold"
+            className="secondary-action px-6"
             href="/dashboard"
           >
             Return to your kits

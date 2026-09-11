@@ -1,5 +1,5 @@
 export function Skeleton({ className = '' }: { className?: string }) {
-  return <div aria-hidden="true" className={`skeleton rounded-md ${className}`} />;
+  return <div aria-hidden="true" className={`skeleton rounded-lg ${className}`} />;
 }
 
 export function DashboardSkeleton() {
@@ -28,7 +28,7 @@ export function StepperSkeleton() {
   return (
     <div
       aria-label="Loading generation progress"
-      className="mx-auto w-full max-w-xl space-y-5"
+      className="paper-panel mx-auto w-full max-w-2xl space-y-5 p-7 sm:p-10"
       role="status"
     >
       {[0, 1, 2, 3, 4, 5].map((item) => (

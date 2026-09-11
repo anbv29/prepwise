@@ -1,0 +1,920 @@
+PREPWISE — COMPLETE PROJECT AND CODE WALKTHROUGH
+================================================
+
+Purpose of this document
+------------------------
+This file explains what Prepwise is, how the complete system works, why it was designed this way, what every source/configuration/test file is responsible for, which OOP and system-design ideas are used, the important security decisions, current limitations, and interview questions you should be ready to answer.
+
+The original assignment PDF is the source of the product requirements. It asks for an AI Interview Prep Kit that accepts a job description, a company URL, and the number of preparation days; performs company and public interview research; creates requirements, questions, flashcards, coverage, and an exact-day schedule; supports editing, regeneration, practice, authentication, persistence, and a machine-readable batch evaluator. Prepwise is the implementation of that brief.
+
+
+1. WHAT TYPE OF PROJECT IS THIS?
+--------------------------------
+Prepwise is a full-stack, AI-assisted interview preparation SaaS application. It is also a research pipeline and a small job-processing system.
+
+From a product point of view, a candidate pastes a job description and company URL, chooses how many days remain before the interview, and receives a structured preparation kit. The kit contains:
+
+- a researched company brief with source links;
+- normalized must-have and nice-to-have role requirements;
+- categorized interview questions with difficulty and requirement references;
+- flashcards linked to requirements;
+- a day-by-day schedule whose length exactly matches days_available;
+- a deterministic coverage report showing whether every requirement is addressed;
+- an editable builder, selective regeneration, and confidence-based practice.
+
+From a technical point of view, it combines:
+
+- a Next.js single-page-style web experience;
+- an Express REST API;
+- MongoDB persistence;
+- cookie/session authentication;
+- an asynchronous persistent generation queue;
+- safe web crawling and optional public-discussion search;
+- OpenAI or Gemini structured generation;
+- deterministic validation, repair, coverage, and scheduling;
+- a separate evaluator CLI for automated grading.
+
+
+2. TECH STACK
+-------------
+
+Language and repository
+- TypeScript throughout the application, using strict compiler options.
+- npm workspaces monorepo. Applications and reusable packages are developed together but have clear boundaries.
+- Node.js 22 or newer and ECMAScript modules.
+
+Frontend
+- Next.js 16 App Router and React 19.
+- Tailwind CSS 4 for styling, plus a custom design-token system in globals.css.
+- TanStack React Query for server-state fetching, caching, polling, mutations, and optimistic updates.
+- React Hook Form and Zod for forms and client-side validation.
+- dnd-kit for accessible question drag-and-drop/reordering.
+- Radix UI primitives for dialogs and tabs.
+- Motion for intentional UI animation, Lucide for icons, and Sonner for toast feedback.
+
+Backend
+- Express 5 running as a normal Node server locally and as a Vercel serverless function in production.
+- Zod at every untrusted boundary.
+- Native Node crypto for scrypt password hashes, random session tokens, SHA-256 token storage, fingerprints, and cache keys.
+- @vercel/functions waitUntil so accepted generation work may continue after the HTTP response in the Vercel environment.
+
+Data
+- MongoDB and the official MongoDB Node driver.
+- Explicit indexes for uniqueness, owner-scoped reads, queue claiming, and TTL cleanup.
+- Zod schemas for database documents and state-machine invariants.
+
+AI and research
+- Provider-neutral structured LLM interface.
+- OpenAI SDK and Google GenAI SDK implementations.
+- Zod/JSON-schema constrained responses rather than parsing arbitrary prose.
+- Cheerio for safe, bounded HTML extraction.
+- robots-parser for robots.txt compliance.
+- Undici for controlled HTTP requests and connection pinning.
+- Brave Search adapter and Gemini Google Search grounding adapter for paid-plan public interview discussion research.
+
+Quality and delivery
+- Vitest for unit and integration tests.
+- Supertest for HTTP/API tests.
+- ESLint plus strict TypeScript checking.
+- Vercel configurations for two projects: web and API.
+
+
+3. HIGH-LEVEL ARCHITECTURE
+--------------------------
+
+The dependency direction is:
+
+Browser UI -> API client interface -> Express HTTP routes -> application services
+           -> repositories -> MongoDB
+           -> generation worker -> pipeline -> LLM/research adapters
+                                      -> deterministic coverage/schedule
+
+The monorepo boundaries are:
+
+- apps/web: user interface only;
+- apps/api: HTTP, authentication, orchestration, jobs, and deployment runtime;
+- packages/contracts: the shared truth for the required JSON shapes;
+- packages/database: persistence schemas, indexes, and repository classes;
+- packages/pipeline: research, AI generation, repair, coverage, scheduling, and batch evaluation;
+- scripts: evaluator and production-environment validation;
+- tests: repository-level CLI/scaffold fixtures and tests.
+
+This separation matters because the evaluator can run the pipeline without the browser or Express, the API can switch AI/search providers without changing routes, and database mechanics do not leak into business rules.
+
+
+4. END-TO-END REQUEST FLOW
+--------------------------
+
+Account flow
+1. The browser validates login or registration data.
+2. POST /api/auth/register or /api/auth/login sends credentials to the API.
+3. Passwords are never stored. Registration creates a salted scrypt hash.
+4. A random session token is returned only in a secure HTTP-only cookie; MongoDB stores only its SHA-256 hash.
+5. Private routes authenticate the cookie and always query kits/jobs by both resource ID and owner ID.
+
+Kit creation flow
+1. The browser validates the job description, company URL, and days.
+2. It sends POST /api/kits with an idempotency key.
+3. The API fingerprints the normalized input, creates a draft kit plus a queued job, and immediately returns pollable IDs.
+4. The generation progress page polls the job/kit. The expensive work is not tied to one long browser request.
+5. A worker atomically claims the oldest eligible job and increments its attempt counter.
+6. The worker checks the owner plan. Free users use the standard generator; paid users may use the grounded-search generator.
+7. Progress and warnings are persisted as stages complete.
+8. On success, the validated kit and completed job are written together logically. On failure, a structured retryable/non-retryable error is saved on both records.
+
+Generation pipeline
+1. Extract atomic role requirements from the untrusted job description.
+2. In parallel, crawl a small ranked set of company pages and, when entitled/configured, search public interview discussions.
+3. Generate the company brief with only known source IDs.
+4. Generate categorized questions and normalize all references/IDs.
+5. Compute coverage in code. If a must-have is uncovered, make one targeted AI repair pass and recompute. Fail closed if the repair still does not cover it.
+6. Generate flashcards and perform the same must-have coverage repair.
+7. Build the exact number of schedule days deterministically, putting must-have and harder work earlier.
+8. Assemble the result and run the complete Appendix A KitSchema before returning it.
+
+Editing and regeneration flow
+1. Editing happens through KitEditorContext.
+2. The UI marks directly changed questions as edited and updates the React Query cache optimistically.
+3. PATCH /api/kits/:kitId persists a schema-valid kit. A mutation sequence prevents an older response from overwriting a newer edit.
+4. Before regeneration, the dialog requests a preview of preserved/replaced counts.
+5. Category regeneration keeps edited questions, replaces only unprotected items in that category, remaps references to the current requirement IDs, avoids ID collisions, and rebuilds coverage/schedule.
+
+Practice flow
+1. The browser loads the kit and the owner's saved practice progress.
+2. Cards are copied and sorted by confidence; unseen cards act as score zero and therefore appear first.
+3. The user reveals the answer and rates confidence from 1 to 4.
+4. Progress updates optimistically and is persisted owner-by-owner in MongoDB.
+5. The next session again prioritizes unseen and low-confidence material.
+
+
+5. WHY SOME WORK IS AI AND SOME IS DETERMINISTIC
+-------------------------------------------------
+AI is good at interpreting natural-language job descriptions and producing tailored explanations, questions, and flashcards. It is not the correct authority for invariants such as unique IDs, valid references, complete must-have coverage, or an exact number of schedule days.
+
+Therefore:
+- the model proposes semantic content;
+- Zod constrains its response shape;
+- normalization code assigns application-owned stable IDs and discards unknown references;
+- coverage is computed from references in ordinary TypeScript;
+- the second pass is triggered by that computed result, not by the model claiming it covered everything;
+- scheduling is a pure deterministic algorithm;
+- the final schema is the last gate before persistence/output.
+
+This is one of the project's strongest design decisions: generative work remains flexible, while correctness properties remain testable and repeatable.
+
+
+6. OOP, SOLID, AND CODE-DESIGN PRINCIPLES USED
+----------------------------------------------
+
+This codebase uses pragmatic TypeScript OOP. It does not create deep class hierarchies merely to look object-oriented. It favors small classes at stateful/integration boundaries and pure functions for transformations.
+
+Encapsulation
+- UserRepository, KitRepository, GenerationJobRepository, ResearchCacheRepository, and PracticeProgressRepository hide Mongo query details and validate their own reads/writes.
+- AuthenticationService owns the rules for registration, login, session issue, authentication, and logout.
+- OpenAiStructuredLlmProvider and GeminiStructuredLlmProvider hide SDK-specific calls, retry rules, and error translation.
+- SafeResearchFetcher owns redirect, size, content-type, timeout, and address-policy enforcement.
+
+Abstraction and polymorphism
+- StructuredLlmProvider is a common port. Generation logic depends on the interface rather than directly on OpenAI or Gemini.
+- DiscussionSearchProvider allows Brave Search and Gemini Grounding to satisfy the same capability.
+- KitGenerator allows the full generator, scaffold generator, and test fakes to be substituted.
+- ApiClient lets the web UI switch between real and mock backends without changing components.
+
+Composition over inheritance
+- runtime.ts constructs concrete providers, repositories, services, pipeline functions, and the Express app, then injects their dependencies.
+- The generator is assembled from research and LLM capabilities rather than subclassing a large base generator.
+- Tests pass small fakes/stubs instead of inheriting from production classes.
+
+Single Responsibility Principle
+- password.ts hashes and verifies passwords only.
+- coverage.ts calculates coverage only.
+- schedule.ts schedules only.
+- url-policy.ts decides whether a URL/address is safe.
+- content.ts extracts bounded useful text.
+- HTTP files translate requests/responses, while services own application behavior.
+
+Open/Closed Principle
+- Another LLM provider or search provider can be added behind the existing interfaces without rewriting the pipeline.
+- A mock ApiClient is added alongside the real client without branching inside every component.
+
+Liskov Substitution Principle
+- Implementations of StructuredLlmProvider, DiscussionSearchProvider, KitGenerator, and ApiClient obey the same input/output behavior, so test doubles and real implementations can replace one another.
+
+Interface Segregation Principle
+- AuthenticationService accepts narrow repository contracts instead of an all-purpose database object.
+- Pipeline stages receive only the provider/research functions they need.
+
+Dependency Inversion Principle
+- High-level generation and auth rules depend on interfaces/functions. SDKs and MongoDB sit at the edges.
+
+Other patterns
+- Repository pattern: all Mongo access is centralized in repository classes.
+- Strategy/Adapter pattern: LLM, discussion search, and browser API clients are replaceable adapters.
+- Composition Root/Factory: apps/api/src/runtime.ts creates and wires the production object graph.
+- State machine: kit and job schemas restrict valid queued/generating/ready/failed states.
+- Cache-aside: research-cache.ts checks Mongo first, otherwise fetches and stores a bounded result.
+- Optimistic concurrency/UI: React Query applies edits immediately and rolls back failed mutations; save sequence numbers reject stale responses.
+- Idempotent command: kit creation uses an idempotency key plus input fingerprint.
+- Producer/consumer queue: HTTP creates work; the worker claims and executes it.
+- Fail-closed validation: invalid AI output, unknown references, or unrepaired must-have coverage cannot silently become a successful kit.
+
+
+7. SYSTEM-DESIGN PRINCIPLES
+---------------------------
+
+Clear boundaries
+The UI, transport, domain contracts, persistence, generation, and external providers are separated. This reduces coupling and gives each layer a focused test surface.
+
+Asynchronous work
+AI plus crawling can take much longer than an HTTP request. Persisted jobs allow immediate acknowledgement, progress polling, retry, stale-job recovery, and server restarts without pretending generation is instant.
+
+Idempotency
+A repeated create request with the same owner, key, and fingerprint returns the existing result. Reusing the key for different input is rejected. This prevents duplicate kits after double clicks, refreshes, or network retries.
+
+Consistency and invariants
+Mongo documents are parsed through Zod. Ready kits must contain a valid final kit; failed jobs must contain an error; complete jobs must report 100%; references must point to existing IDs; schedule length must equal days_available.
+
+Ownership/multi-tenancy
+Private repositories query by ownerId plus object ID. Knowing another Mongo ObjectId is not enough to read or update that user's data.
+
+Graceful degradation
+Secondary research failures become warnings when useful generation can continue. The root company page is essential, but child-page/discussion failures can be recoverable. Free users intentionally skip public discussion grounding without showing a fake error.
+
+Bounded resources
+Crawl page count, redirects, response bytes, extracted text, timeouts, retry count, job attempts, and input lengths all have limits. Bounds protect cost, latency, memory, and reliability.
+
+Determinism where correctness matters
+Stable IDs, coverage reports, reference checks, ordering, and schedules are repeatable. This makes automated grading and regression testing possible.
+
+Observability for users
+Persisted stage names, percentages, messages, warnings, error codes, and retryability make the pipeline inspectable rather than leaving a spinner with no explanation.
+
+Deployment topology
+Production uses two Vercel projects. Next.js handles the frontend and rewrites same-origin /api calls to the API origin. Express is packaged as the API serverless function. MongoDB provides durable shared state. Secrets remain server-side.
+
+
+8. SECURITY DESIGN
+------------------
+
+- Passwords use salted scrypt, not reversible encryption and not plain SHA hashing.
+- Session tokens have high entropy; only their SHA-256 hashes are stored.
+- Cookies are HTTP-only, SameSite=Lax, and Secure in production.
+- Login uses the same public error for unknown email and wrong password, with a dummy hash verification to reduce user-enumeration/timing leakage.
+- State-changing requests reject untrusted browser origins.
+- CORS is restricted to the configured web origin.
+- JSON bodies are capped at 1 MB.
+- Security headers disable framing, MIME sniffing, unnecessary browser permissions, and cross-origin opener access.
+- All HTTP, database, AI, file, and form boundaries are validated.
+- Prompt instructions explicitly label job descriptions, page text, and snippets as untrusted data rather than system instructions.
+- Research accepts only HTTP(S), rejects credentials/nonstandard ports in production, resolves DNS, blocks private/loopback/link-local/reserved/metadata addresses (IPv4 and IPv6), revalidates every redirect, and pins the connection to the validated address to resist DNS rebinding.
+- Research accepts only known text content types and enforces declared and streamed byte limits.
+- Search keys and LLM keys are read only from server environment variables.
+- Output citations are mapped from application-known source IDs, so the model cannot invent arbitrary source URLs.
+
+
+9. FILE-BY-FILE GUIDE
+---------------------
+
+ROOT FILES
+
+.env.example
+Documents every environment variable with safe placeholders/defaults: local ports/origins, Mongo, sessions, worker bounds, LLM provider/model/key, search, crawler limits, and local private-network allowance. Actual secret .env files must never be committed.
+
+package.json
+Defines the npm-workspace monorepo, Node requirement, and top-level commands for local development, builds, tests, linting, type checking, evaluation, and separate Vercel web/API builds.
+
+package-lock.json
+Generated, reproducible dependency graph. It pins exact transitive versions so local, CI, and Vercel installs behave consistently; it is not hand-edited application logic.
+
+tsconfig.base.json
+Shared strict TypeScript policy: ES2022, NodeNext modules, no unchecked indexed access, exact optional properties, isolated modules, and other correctness settings.
+
+tsconfig.tests.json
+Type-check configuration that includes test sources without emitting JavaScript.
+
+eslint.config.mjs
+Lint rules for TypeScript/JavaScript and ignore rules for generated build/coverage folders.
+
+vitest.config.ts
+Vitest discovery, Node test environment, and text/HTML coverage settings.
+
+README.md
+Primary developer documentation: requirements, architecture, local setup, environment variables, API/worker behavior, research and generation design, editing/practice flow, evaluator command, tests, and deployment overview.
+
+DELIVERY.md
+Reviewer-oriented handoff notes: demo flow, local credentials for mock mode, real-service setup, evaluator usage, and verification checklist.
+
+PRODUCTION.md
+Production runbook for Mongo Atlas and the two Vercel projects, including environment variables, deployment order, health checks, and serverless limitations.
+
+
+SHARED CONTRACT PACKAGE — packages/contracts
+
+packages/contracts/package.json
+Declares the private workspace package and its Zod dependency/build/type-check scripts.
+
+packages/contracts/tsconfig.json
+Builds the package to declarations/JavaScript using the repository's strict TypeScript baseline.
+
+packages/contracts/src/kit.ts
+The authoritative Appendix A schema and inferred TypeScript types. It defines company brief, requirements, questions, flashcards, schedule, coverage, and the complete kit. Cross-field refinements reject duplicate IDs, unknown references, bad day sequences, and a schedule count different from days_available. passthrough keeps legitimate extensions such as UI edit markers without weakening required fields.
+
+packages/contracts/src/batch.ts
+The authoritative Appendix B evaluator input/output schemas. It validates unique case IDs and uses a discriminated union so an output is either ok with a valid kit or failed with a structured error, never an ambiguous mixture.
+
+packages/contracts/src/index.ts
+Public export surface for schemas/types and the schema version.
+
+packages/contracts/src/kit.test.ts
+Tests complete valid kits, missing sections, duplicate IDs, unknown requirement/question references, exact schedule length/day numbering, and allowed extensions.
+
+packages/contracts/src/batch.test.ts
+Tests valid batch cases, mixed success/failure results, duplicate case/result IDs, and invalid discriminated result shapes.
+
+
+DATABASE PACKAGE — packages/database
+
+packages/database/package.json
+Declares MongoDB, Zod, and contracts dependencies plus package build/type-check commands.
+
+packages/database/tsconfig.json
+Strict build configuration for the database package.
+
+packages/database/src/connection.ts
+Reads Mongo configuration, raises a clear DatabaseConfigError when missing, connects the client, creates indexes before use, returns collections, and closes a partially opened client on initialization failure.
+
+packages/database/src/models.ts
+Zod schemas/types for users, sessions, kits, generation jobs, research-cache entries, and practice progress. It models legal state transitions/invariants, including plan values, completed progress, required failure details, and unique flashcard progress IDs.
+
+packages/database/src/indexes.ts
+Names collections and defines/creates indexes: normalized email uniqueness, unique hashed sessions plus expiry TTL, owner/kit lookups, idempotent jobs, oldest-job queue access, research cache uniqueness/expiry, and one practice record per owner/kit.
+
+packages/database/src/repositories.ts
+All persistence behavior. Repository classes accept collections and a clock, validate documents, scope private operations by owner, increment kit versions, atomically claim the oldest queued job, recover stale jobs, enforce retry limits, upsert cache entries without changing identity, and record practice attempts.
+
+packages/database/src/index.ts
+Single public export surface for connection, models, indexes, and repositories.
+
+packages/database/src/connection.test.ts
+Tests required URI handling, configured database selection, and the default database name.
+
+packages/database/src/models.test.ts
+Tests valid documents and rejects unsafe session hashes, ready kits without content, inconsistent completed/failed jobs, invalid cache states, and duplicate practice-card entries.
+
+packages/database/src/indexes.test.ts
+Tests that ownership, uniqueness, queue, and TTL indexes exist and are created on the correct collections.
+
+packages/database/src/repositories.test.ts
+Tests email normalization, plan updates, non-expired sessions, owner isolation, draft creation, state validation, atomic queue claims, retry policy, cache expiry/upsert identity, and owner-scoped practice progress.
+
+
+PIPELINE PACKAGE — packages/pipeline
+
+packages/pipeline/package.json
+Declares OpenAI, Gemini, Cheerio, robots parser, Undici, Zod, and contracts dependencies and exposes the built package.
+
+packages/pipeline/tsconfig.json
+Strict package build settings.
+
+packages/pipeline/src/index.ts
+The package's public API. It re-exports generators, types, coverage/schedule helpers, providers, research adapters, configuration readers, and errors while keeping callers independent of internal paths.
+
+packages/pipeline/src/scaffold-generator.ts
+A deterministic zero-network generator for early scaffolding/tests. It creates a schema-valid minimal kit and exact-day schedule from an input case. It is not the production AI generator.
+
+packages/pipeline/src/full-generator.ts
+The pipeline composition function. It coordinates requirement extraction, concurrent research, generated sections, deterministic schedule and coverage, progress callbacks, warning normalization, free-tier discussion-search behavior, and final KitSchema validation.
+
+packages/pipeline/src/coverage.ts
+Pure coverage engine. It verifies unique IDs, maps question references to requirements, reports must/nice covered and uncovered IDs, records unknown references, preserves order, and converts the internal report into the exact contract shape without mutating inputs.
+
+packages/pipeline/src/schedule.ts
+Pure scheduling engine. It rejects invalid/uncovered inputs, ranks must-have and harder questions first, estimates integer minutes, balances work across exactly N sequential days, and emits honest review-only days when there are more days than new items.
+
+packages/pipeline/src/batch-evaluation.ts
+Runs evaluator cases in input order using an injected KitGenerator. One failed case becomes a structured result instead of aborting the whole batch; every successful result is schema-validated.
+
+packages/pipeline/src/full-generator.test.ts
+Integration-style test of assembled researched/generated output, stage behavior, final validation, and the clean free-tier path without a discussion-search warning.
+
+packages/pipeline/src/coverage.test.ts
+Tests empty, single, multi-reference, duplicate, unknown, ordered, deterministic, immutable, and error cases plus the exact Appendix A coverage shape.
+
+packages/pipeline/src/schedule.test.ts
+Tests exact day counts, priority/difficulty ordering, complete question and must-have scheduling, one-day and 60-day edges, review days, invalid references, determinism, and input immutability.
+
+packages/pipeline/src/batch-evaluation.test.ts
+Tests input-order output, shared timestamps, per-case continuation after errors, invalid generated structures, and normalization of non-Error throws.
+
+packages/pipeline/src/llm/config.ts
+Reads and strictly validates provider, key, model, timeout, and retry environment settings for OpenAI/Gemini.
+
+packages/pipeline/src/llm/provider.ts
+Defines the provider-neutral structured-generation contract, metadata, and error model, and implements the OpenAI adapter with schema-constrained output, non-storage behavior, bounded retry/backoff, usage reporting, and normalized permanent/transient/quota failures.
+
+packages/pipeline/src/llm/gemini-provider.ts
+Gemini implementation of the same structured provider contract using JSON-schema output, timeout cancellation, bounded retry, JSON parsing, Zod validation, metadata, and normalized quota/provider errors.
+
+packages/pipeline/src/llm/generation-shared.ts
+Shared normalization utilities: bounded clean text, case-insensitive deduplication, stable ID creation, filtering to known requirement references, and stage metadata helpers.
+
+packages/pipeline/src/llm/requirement-extraction.ts
+Validates job-description length, supplies explicit prompt-injection boundaries, requests atomic requirement candidates, normalizes/deduplicates them, resolves priority, separates evidence, assigns stable req-### IDs, and warns when evidence is not verbatim.
+
+packages/pipeline/src/llm/company-brief-generation.ts
+Builds a bounded untrusted-source payload, asks for facts only from supplied pages, maps chosen source IDs back to known URLs, removes invented citations, and returns an explicit no-research brief when no pages are available.
+
+packages/pipeline/src/llm/question-generation.ts
+Requests a substantial categorized question set, sanitizes category/difficulty/references, deduplicates prompts, assigns question-### IDs, computes coverage, performs one focused repair call for uncovered must-haves, and fails if they remain uncovered.
+
+packages/pipeline/src/llm/flashcard-generation.ts
+Generates a substantial flashcard set, sanitizes/deduplicates content/references, assigns flashcard IDs, checks must-have coverage, performs one targeted repair, and fails closed if coverage still fails.
+
+packages/pipeline/src/llm/kit-section-generation.ts
+Coordinates company brief, question generation/repair, and flashcard generation/repair in a defined order and aggregates provider metadata and warnings for the outer pipeline.
+
+packages/pipeline/src/llm/config.test.ts
+Tests provider aliases, explicit model/key requirements, and invalid limits/models.
+
+packages/pipeline/src/llm/provider.test.ts
+Tests OpenAI structured/non-stored requests, usage metadata, transient retry/backoff, permanent/quota failures, and invalid or absent parsed output.
+
+packages/pipeline/src/llm/gemini-provider.test.ts
+Tests Gemini structured JSON, metadata, rate-limit retries, permanent failures, and retry after malformed output.
+
+packages/pipeline/src/llm/requirement-extraction.test.ts
+Tests stable IDs, duplicate merging, evidence separation, prompt boundary placement, and input bounds.
+
+packages/pipeline/src/llm/kit-section-generation.test.ts
+Tests known source mapping, no-research fallback, unknown-link removal, question/flashcard must-have repair, fail-closed behavior, and stage call order.
+
+packages/pipeline/src/research/config.ts
+Parses bounded crawl/timeout/size configuration and prohibits the private-network development escape hatch in production.
+
+packages/pipeline/src/research/url-policy.ts
+Canonical SSRF policy. It validates protocols/ports/credentials, resolves DNS, and blocks local, private, link-local, reserved, metadata, and mapped addresses. A tightly controlled private-network option exists only for local fixtures.
+
+packages/pipeline/src/research/safe-fetch.ts
+Performs timeout-controlled manual-redirect HTTP fetches. It revalidates every redirect, pins connections to validated IPs, restricts content type, caps Content-Length and streamed bytes, records final provenance, and classifies retryable failures.
+
+packages/pipeline/src/research/content.ts
+Uses Cheerio to remove scripts/styles/navigation noise, extract title/useful text/links, normalize control characters/whitespace, resolve relative links, and truncate deterministically.
+
+packages/pipeline/src/research/company-crawler.ts
+Reads robots.txt, loads the root company page, discovers same-origin links, ranks likely About/Careers/Engineering/Culture/Product pages deterministically, limits page count, and preserves recoverable child-page failures while treating a failed root as terminal.
+
+packages/pipeline/src/research/discussion-search.ts
+Defines the discussion-search interface and Brave adapter. It builds bounded site-specific Reddit/Glassdoor queries, keeps the key in a header, permits only attributable HTTPS results from allowed domains, deduplicates them, and returns partial results plus warnings.
+
+packages/pipeline/src/research/gemini-discussion-search.ts
+Alternative discussion adapter using Gemini's Google Search grounding. It requests bounded structured results, applies timeout/retry/validation rules, and reports unavailable grounding quota distinctly.
+
+packages/pipeline/src/research/config.test.ts
+Tests secure defaults, invalid bounds, boolean parsing, and the production private-network prohibition.
+
+packages/pipeline/src/research/url-policy.test.ts
+Tests public URLs, malicious/private DNS answers, and the local-fixture exception.
+
+packages/pipeline/src/research/safe-fetch.test.ts
+Tests bounded response/provenance, every redirect check, content-type rejection, declared/stream byte caps, and retryable HTTP failures.
+
+packages/pipeline/src/research/content.test.ts
+Tests removal of executable/navigation noise and deterministic normalization/truncation.
+
+packages/pipeline/src/research/company-crawler.test.ts
+Tests link priority, robots compliance, recoverable child failures, and terminal root failure.
+
+packages/pipeline/src/research/discussion-search.test.ts
+Tests safe bounded queries, required configuration, secret-safe Brave calls, throttling, source allowlists, deduplication, and partial failure handling.
+
+packages/pipeline/src/research/gemini-discussion-search.test.ts
+Tests Google Search grounding, bounded structured results, quota-unavailable behavior, and retry after malformed output.
+
+
+API APPLICATION — apps/api
+
+apps/api/package.json
+Declares Express, contracts/database/pipeline workspaces, Vercel functions, dotenv, Zod, build/start/dev/type-check scripts, and Supertest test dependencies.
+
+apps/api/tsconfig.json
+Strict server build configuration and dist output.
+
+apps/api/vercel.json
+Builds the API from the monorepo root, exposes the public output, routes requests to the serverless entry point, and permits a long generation-function duration.
+
+apps/api/api/index.ts
+Tiny Vercel entry module that re-exports the Express handler from the main server entry.
+
+apps/api/public/index.html
+Minimal static fallback/identity page for the API deployment; product UI lives in apps/web.
+
+apps/api/src/auth/config.ts
+Validates web origin, bounded session lifetime, cookie name, and secure-cookie mode.
+
+apps/api/src/auth/password.ts
+Asynchronous salted scrypt password hashing and constant-time verification with a versioned storage format. Malformed/unknown hashes safely return false.
+
+apps/api/src/auth/session-token.ts
+Creates a random raw session token for the cookie and its SHA-256 hash for database storage.
+
+apps/api/src/auth/service.ts
+AuthenticationService business logic: normalize/register user, prevent duplicates, perform timing-resistant login, issue hashed persistent sessions, authenticate raw cookies through their hashes, and revoke sessions on logout.
+
+apps/api/src/auth/http.ts
+The private/public REST router. It validates and implements register, login, logout, current user, create/list/get/update kits, batch creation, regeneration preview/accept, practice progress, job polling, and retry. It serializes safe user/resources and applies authentication/ownership at the HTTP boundary.
+
+apps/api/src/generation/config.ts
+Validates worker polling interval, stale threshold, and maximum attempts.
+
+apps/api/src/generation/requests.ts
+GenerationRequestService. It validates create input, hashes a canonical input fingerprint, enforces idempotency semantics, creates kit/job records, compensates by deleting the draft if job insertion fails, and coordinates allowed retries.
+
+apps/api/src/generation/research-cache.ts
+Mongo-backed cache-aside wrapper for research. URLs become SHA-256 keys; successful responses live longer, failures live briefly, and cached structured errors retain retryability without repeatedly hitting a bad source.
+
+apps/api/src/generation/worker.ts
+Persistent job consumer. It starts/stops polling locally or handles one job in serverless mode, recovers stale work, claims jobs atomically, selects standard/grounded generation from the owner's stored plan, persists progress/warnings, validates success, and synchronizes structured failure/retry state.
+
+apps/api/src/app.ts
+Creates the Express app with JSON size limit, security headers, exact-origin CORS and mutation-origin checks, public health endpoint, /api router, 404 response, and centralized structured error handling.
+
+apps/api/src/runtime.ts
+Production composition root and the most important orchestration file. It creates Mongo/repositories/config, LLM provider, safe research/cache/crawler, optional search adapters, standard and paid generators, auth/request/worker services, and Express. It owns the singleton runtime and regeneration merge algorithm that preserves edited questions, remaps requirements, avoids collisions, and rebuilds coverage/schedule.
+
+apps/api/src/index.ts
+Environment-neutral gateway. It lazily initializes runtime, exports a Vercel-compatible handler, starts Express plus the polling worker locally, and performs graceful shutdown.
+
+apps/api/test/password.test.ts
+Tests salted scrypt verification and safe rejection of malformed hash formats.
+
+apps/api/test/auth-config.test.ts
+Tests development defaults, required/bounded values, and secure production cookies.
+
+apps/api/test/auth-service.test.ts
+Tests normalized registration, hashing/session issue, duplicates, indistinguishable login failures, hashed-token authentication, and revocation.
+
+apps/api/test/app.test.ts
+HTTP integration tests for public health/security headers, registration/cookie/current user, validation, private-route ownership, queued kit creation, origin protection, and logout.
+
+apps/api/test/generation-config.test.ts
+Tests worker defaults and rejection of unsafe polling/retry settings.
+
+apps/api/test/generation-requests.test.ts
+Tests kit/job creation, identical idempotent replay, conflicting key reuse, compensating cleanup, and repository-approved retries.
+
+apps/api/test/research-cache.test.ts
+Tests fresh hits, success TTL writes, replayed cached failures, short failure caching, and retryability preservation.
+
+apps/api/test/generation-worker.test.ts
+Tests successful job lifecycle, free versus paid generator selection, structured failures, preserved progress/retryability, warnings, empty queues, and stale-job status synchronization.
+
+
+WEB APPLICATION — apps/web
+
+apps/web/package.json
+Declares Next/React, Tailwind, React Query, forms/Zod, Radix, dnd-kit, Motion, Lucide, Sonner, contracts, and web scripts.
+
+apps/web/tsconfig.json
+Strict Next.js TypeScript configuration, aliases, framework plugin, and no-emit behavior.
+
+apps/web/next-env.d.ts
+Framework-generated Next.js TypeScript declarations. It should not contain business logic or be edited manually.
+
+apps/web/next.config.ts
+Enables strict React, removes the powered-by header, rewrites same-origin /api traffic to the configured API deployment, and adds browser security headers.
+
+apps/web/postcss.config.mjs
+Connects Tailwind's PostCSS plugin to the Next.js build.
+
+apps/web/vercel.json
+Tells a dedicated Vercel project how to install/build this workspace from the monorepo root.
+
+apps/web/AGENTS.md
+Framework-maintained instruction for coding agents to consult the installed Next.js version's docs because this version may differ from older conventions.
+
+apps/web/CLAUDE.md
+Points compatible coding agents to AGENTS.md so the same local framework rule is reused.
+
+apps/web/src/app/globals.css
+Global visual system: Tailwind import, color/design tokens, typography, focus/selection rules, page background, controls, accessibility helpers, scrollbar details, reduced-motion behavior, and shared utility styling.
+
+apps/web/src/app/layout.tsx
+Root HTML layout, global metadata/styles, and AppProviders wrapper.
+
+apps/web/src/app/page.tsx
+Public home route and SEO metadata; renders the landing page.
+
+apps/web/src/app/login/page.tsx
+Server route for sign-in. Reads/sanitizes returnTo and renders AuthPage in login mode.
+
+apps/web/src/app/register/page.tsx
+Server route for account creation; renders AuthPage in registration mode.
+
+apps/web/src/app/dashboard/page.tsx
+Protected workspace route shell that renders AppShell and DashboardScreen.
+
+apps/web/src/app/dashboard/loading.tsx
+Instant route-level dashboard skeleton while its code/data is loading.
+
+apps/web/src/app/kits/new/page.tsx
+Protected create route. Reads optional single/batch mode and renders NewKitForm.
+
+apps/web/src/app/kits/new/loading.tsx
+Route-level skeleton for kit creation.
+
+apps/web/src/app/kits/[kitId]/page.tsx
+Kit overview route; resolves the dynamic ID and renders KitSectionScreen for overview.
+
+apps/web/src/app/kits/[kitId]/loading.tsx
+Shared skeleton for kit detail navigation.
+
+apps/web/src/app/kits/[kitId]/[section]/page.tsx
+Validated dynamic route for brief, role, questions, flashcards, schedule, or coverage. Invalid sections become a Next.js not-found response and metadata follows the selected section.
+
+apps/web/src/app/kits/[kitId]/progress/page.tsx
+Dynamic generation-progress route; passes kit/job IDs to GenerationStepper.
+
+apps/web/src/app/kits/[kitId]/progress/loading.tsx
+Progress-stepper route skeleton.
+
+apps/web/src/app/kits/[kitId]/practice/page.tsx
+Dynamic flashcard-practice route; renders PracticeScreen for the kit.
+
+apps/web/src/app/kits/[kitId]/practice/loading.tsx
+Practice route skeleton.
+
+apps/web/src/components/providers.tsx
+Creates one stable React Query client with sensible stale/retry settings and provides global toast notifications.
+
+apps/web/src/components/brand-mark.tsx
+Reusable accessible Prepwise logo mark used beside the product name.
+
+apps/web/src/components/landing/landing-page.tsx
+Complete public marketing/front page: responsive navigation, product explanation, outcomes/metrics, how-to flow, service/features, pricing tiers, reviews, contact/footer, session-aware account actions, and route prefetching for fast entry.
+
+apps/web/src/components/auth/auth-page.tsx
+Two-column branded login/register presentation with back-to-home navigation, contextual copy, and AuthForm.
+
+apps/web/src/components/auth/auth-form.tsx
+Login/registration form. Zod enforces valid email, 8–128-character password, and registration-only first name, last name, and non-future DOB. React Query calls the API, primes current-user cache, displays feedback, prefetches the destination, and safely prevents open return redirects.
+
+apps/web/src/components/shell/app-shell.tsx
+Authenticated workspace header/navigation. Loads the current user, redirects unauthenticated visitors to login with returnTo, shows plan/account state, logs out through the API/cache, and includes navigation back to the public main page.
+
+apps/web/src/components/dashboard/dashboard-screen.tsx
+Queries and displays owner kits, status/count metrics, responsive ready/generating/failed kit rows, new/batch actions, empty/error/loading states, and links to the correct progress or result route.
+
+apps/web/src/components/kits/new-kit-form.tsx
+Single and batch creation experience. It validates the three required fields, controls 1–30 days in the UI, parses quoted CSV or JSON, normalizes alternative column names, previews every row and its errors before submission, queues via the API, invalidates the dashboard cache, and opens progress.
+
+apps/web/src/components/generation/generation-stepper.tsx
+Polls job and kit status, converts backend stage/percentage into six meaningful visual steps, displays progress/warnings/errors, stops polling at terminal state, supports retry when allowed, and navigates to the ready kit.
+
+apps/web/src/components/kit-detail/kit-editor-context.tsx
+Shared edit state and persistence boundary for all kit builders. It clones/normalizes the kit, applies optimistic cache updates, serializes saves with a sequence number, rolls back failed changes, and exposes a guarded hook.
+
+apps/web/src/components/kit-detail/kit-section-screen.tsx
+Main result workspace. It loads the kit, shows company/role header and save state, renders section navigation on separate informative pages, computes overview metrics, displays warnings/sources, and delegates editing to the relevant builders.
+
+apps/web/src/components/kit-detail/brief-role-builder.tsx
+Editable company/role UI. It uses inline editing and dialogs to change summary, responsibilities, requirements, priority/kind/evidence, add/remove items, keep references normalized through the editor context, and invoke brief regeneration.
+
+apps/web/src/components/kit-detail/question-builder.tsx
+Question authoring board grouped by category. It supports add/edit/delete, requirement links, difficulty/category changes, drag-and-drop across/within categories, keyboard-friendly arrow movement, edited protection flags, and category-specific regeneration.
+
+apps/web/src/components/kit-detail/flashcard-builder.tsx
+Flashcard add/edit/delete UI with front/back, tags, requirement references, and optimistic saving through the common editor.
+
+apps/web/src/components/kit-detail/inline-text-editor.tsx
+Small reusable accessible edit/save/cancel control used for short inline text changes.
+
+apps/web/src/components/kit-detail/regenerate-dialog.tsx
+Regeneration safety UX. It fetches a preview only while open, explains what will be preserved/replaced, asks for explicit acceptance, calls selective regeneration, updates the kit cache, and confirms protected edits were kept.
+
+apps/web/src/components/practice/practice-screen.tsx
+Complete flashcard session state machine: loads kit/progress, freezes the session order, reveals answers, supports previous/next controls and keyboard interaction, records 1–4 confidence optimistically with rollback, calculates completion/weak-card summary, and explains future prioritization.
+
+apps/web/src/components/ui/dialog.tsx
+Styled wrapper around Radix Dialog with overlay, close control, title, and description primitives.
+
+apps/web/src/components/ui/tabs.tsx
+Styled accessible wrappers around Radix Tabs used by the single/batch creation flow.
+
+apps/web/src/components/ui/skeleton.tsx
+Reusable shimmer skeletons for dashboard, new kit, progress, kit detail, and practice routes to avoid blank/loading-layout jumps.
+
+apps/web/src/lib/api/types.ts
+Frontend port for backend behavior: credential/create/regeneration types, complete ApiClient interface, and ApiClientError with HTTP status/error code.
+
+apps/web/src/lib/api/real.ts
+Fetch adapter for the real API. It selects same-origin production URLs, includes credentials, sets JSON/idempotency headers, normalizes structured server errors, and implements auth, kit, job, regeneration, and practice methods.
+
+apps/web/src/lib/api/mock.ts
+In-browser demo adapter implementing the same ApiClient. It uses fixture kits and localStorage session/practice state, simulates latency/progress/jobs/editing/regeneration, and supports UI work without Mongo/LLM services. It is development/demo behavior, not production persistence.
+
+apps/web/src/lib/api/index.ts
+Chooses mock or real ApiClient from environment settings; production defaults to real. It also re-exports the API types.
+
+apps/web/src/lib/fixtures/kits.ts
+Rich, thin, and research-unavailable schema-shaped example kits/records used by mock mode to exercise normal and warning/edge UI states.
+
+apps/web/src/lib/practice-order.ts
+Pure function that creates a non-mutating copy of flashcards and sorts by saved confidence, treating unseen cards as lowest confidence.
+
+apps/web/src/lib/practice-order.test.ts
+Tests unseen/low-confidence priority and input immutability.
+
+apps/web/src/lib/visible-warnings.ts
+Presentation filter that hides only the known paid-grounding quota notice while retaining actionable source warnings. Generation still records the diagnostic internally.
+
+apps/web/src/lib/visible-warnings.test.ts
+Ensures the quota banner is hidden without accidentally hiding other warnings.
+
+apps/web/src/types/kit.ts
+UI domain types for kits, records, jobs, steps, practice, and users, including presentation extensions such as edited. Note: these partially mirror shared contracts, which is convenient for UI but creates a future schema-drift risk.
+
+
+SCRIPTS AND ROOT TESTS
+
+scripts/evaluate.ts
+Implements the exact required command: npm run evaluate -- --input <cases.json> --output <kits.json>. It strictly parses flags, reads/validates Appendix B JSON, constructs a production-style generator, processes every case, creates the output directory, and writes formatted schema-valid JSON. At present this CLI composition constructs the OpenAI adapter; the deployed API runtime supports OpenAI or Gemini.
+
+scripts/validate-production-env.mjs
+Fails a Vercel build early when required web/API origins, Mongo, provider keys/models, or real-API mode are missing/invalid, and rejects private-network crawling in production.
+
+tests/fixtures/valid-kit.ts
+Reusable canonical valid kit factory used throughout schema, persistence, pipeline, and worker tests.
+
+tests/fixtures/batch-cases.json
+Example Appendix B evaluator input with representative cases.
+
+tests/scaffold.test.ts
+Basic project/package schema-version smoke test.
+
+tests/evaluate-cli.test.ts
+Tests exact and equals-style CLI flags, valid JSON read/write/output schema, and safe failure without output on malformed input.
+
+
+10. IMPORTANT TRADE-OFFS AND CURRENT LIMITATIONS
+------------------------------------------------
+
+1. Two Vercel projects increase setup work but keep web and API responsibilities clear. A single Next.js app could simplify deployment but would require moving/rewriting the Express boundary.
+
+2. The Mongo-backed queue is adequate for an assignment and light workloads. A serious production scale would use a dedicated queue/worker platform with leases, dead-letter handling, concurrency control, and stronger delivery guarantees.
+
+3. Vercel waitUntil is best-effort within serverless execution limits. Long jobs can still approach function duration. The persisted job design makes migration to a dedicated worker possible.
+
+4. Research is intentionally small and bounded. This improves safety/cost/latency but may miss deeply nested company information.
+
+5. Free users receive all core Gemini generation and company crawling but skip public interview-discussion grounding. Paid entitlement exists in the backend model, but payment/checkout and self-service plan upgrades are not implemented; pricing buttons are intentionally non-purchasing UI.
+
+6. Gemini Google Search grounding depends on account billing/quota. The UI hides that specific warning as requested, while the backend retains the diagnostic.
+
+7. The UI/API creation form currently caps days at 30, while the core schedule algorithm and its tests support 60 days as requested by the evaluator edge case. If 60-day interactive plans are required, raise the HTTP/UI maximum consistently.
+
+8. The evaluator's environment generator currently constructs OpenAI directly, whereas the web/API runtime can select Gemini. To evaluate with Gemini, refactor the CLI to reuse provider selection from runtime/config.
+
+9. Frontend kit types partially duplicate the shared contract types. This offers UI convenience but can drift. A later cleanup should derive base types directly from @prep-kit/contracts and add only UI extensions.
+
+10. The code has registration/login/session/logout but no email verification, password reset, OAuth, CSRF token scheme, abuse rate limiting, audit log, or account deletion. These are production SaaS concerns outside the assignment's core scope.
+
+11. Company URLs may refuse bots, require JavaScript, or block hosting-provider IPs. The system reports research gaps honestly instead of inventing facts.
+
+12. A real deployment is not complete until Vercel SSO/protection is disabled for public access, Mongo Atlas credentials/network access work from Vercel, environment variables are set for Production/Preview as intended, the API /api/health succeeds, registration/login work, and a real generated kit reaches ready state.
+
+13. Secrets previously pasted into chat or logs should be rotated. Never copy real keys into this file, source code, Git, screenshots, or NEXT_PUBLIC_ variables.
+
+
+11. HOW TO EXPLAIN THE PROJECT IN ONE MINUTE
+--------------------------------------------
+
+“Prepwise is a full-stack AI interview-preparation platform. A user supplies a job description, company URL, and available days. The API creates an idempotent persistent job, then a worker safely crawls relevant company pages, optionally searches attributable interview discussions for paid users, and uses a provider-neutral OpenAI/Gemini pipeline to extract requirements and generate a brief, questions, and flashcards. The model never decides correctness by itself: stable references, must-have coverage, the targeted second pass, exact-day scheduling, and the final output shape are enforced deterministically with TypeScript and Zod. Users can edit and reorder content, selectively regenerate without losing protected edits, and practice low-confidence cards first. MongoDB provides owner-isolated persistence, sessions, jobs, cache, and progress. The same core pipeline is exposed through the required batch-evaluation CLI.”
+
+
+12. INTERVIEW QUESTIONS AND ANSWER POINTS
+-----------------------------------------
+
+1. Why did you use a monorepo?
+Answer points: shared contracts; atomic changes across UI/API/pipeline; one install/test command; still keeps deployable boundaries.
+
+2. Walk me through a kit request from button click to final result.
+Answer points: client validation -> idempotent POST -> draft/job -> atomic claim -> plan-aware generator -> research/LLM -> repair -> deterministic schedule/coverage -> final schema -> polling UI.
+
+3. Why not call Gemini directly from the browser?
+Answer points: secret exposure, no trusted authorization/entitlement, CORS/control, inability to enforce output/schema/retries centrally, no durable jobs.
+
+4. Why use a background job instead of one synchronous endpoint?
+Answer points: variable AI/research latency, browser disconnects, progress, retry, stale recovery, duplicate prevention, future worker scaling.
+
+5. How does idempotency work?
+Answer points: owner + idempotency key unique; canonical input fingerprint; same request returns original; different input with same key is conflict.
+
+6. What happens if kit insertion succeeds but job insertion fails?
+Answer points: compensating deletion removes the unusable draft; explain this is application-level compensation, not a multi-document transaction.
+
+7. How do you stop two workers from processing one job?
+Answer points: atomic find-and-update claim of oldest queued eligible job; status/attempt predicate; Mongo index supports it.
+
+8. How do you recover a crashed worker?
+Answer points: startedAt/stale threshold; recover stale generating jobs; requeue below attempt limit or mark failed.
+
+9. Why Zod when TypeScript already exists?
+Answer points: TypeScript disappears at runtime; network/database/model/file input is unknown; Zod validates and infers types.
+
+10. How do you guarantee the output follows Appendix A?
+Answer points: stage schemas, normalization, reference filtering, deterministic invariants, final KitSchema parse before save/output.
+
+11. How is the second coverage pass genuine?
+Answer points: compute coverage in code from stable requirement IDs; collect uncovered must-haves; send only that repair target; merge; recompute; fail closed if still uncovered.
+
+12. Why is scheduling deterministic?
+Answer points: exact counts/ordering are invariants, not creative language tasks; deterministic function is cheap, repeatable, testable, and cannot hallucinate IDs.
+
+13. How is the exact number of days guaranteed?
+Answer points: validate positive integer; create exactly N buckets numbered 1..N; distribute ranked work; review-only days for excess; schema cross-check.
+
+14. How are harder/must-have topics put earlier?
+Answer points: priority/difficulty scoring, stable sort, balanced assignment, test asserts expected ordering.
+
+15. How do you prevent hallucinated citations?
+Answer points: crawler owns URLs and assigns source IDs; model may select only IDs; server maps back and removes unknown IDs.
+
+16. How do you defend against prompt injection in scraped pages/JDs?
+Answer points: system/developer-style instruction declares content untrusted data; delimit/bound it; model output constrained; server independently validates/recomputes.
+
+17. How do you prevent SSRF?
+Answer points: protocol/port/credential rules, DNS resolution, private/reserved/metadata blocking for v4/v6, redirect revalidation, IP pinning, production disables escape hatch.
+
+18. Why respect robots.txt?
+Answer points: responsible crawling, site policy compliance, bounded access; blocked pages become provenance-aware gaps rather than bypass attempts.
+
+19. Why cache research failures?
+Answer points: avoid hammering an unavailable URL/provider; short failure TTL allows recovery; preserve retryability and error detail.
+
+20. How is user data isolated?
+Answer points: auth middleware resolves session owner; repository reads/updates use both ownerId and resource ID; tests assert scoping.
+
+21. How are passwords and sessions protected?
+Answer points: salted memory-hard scrypt; timingSafeEqual; high-entropy cookie token; database stores SHA-256 token hash; expiry TTL; HTTP-only/Secure/SameSite.
+
+22. How do free and paid plans differ?
+Answer points: core generation/crawl for free; worker selects grounded generator only from server-stored paid plan; client cannot self-declare entitlement.
+
+23. How does selective regeneration preserve edits?
+Answer points: edited flag, target category only, preview, preserve protected IDs/content, remap current requirement references, avoid collisions, rebuild dependent schedule/coverage.
+
+24. How do optimistic edits remain safe?
+Answer points: snapshot previous cache, apply local clone, send PATCH, rollback error, mutation sequence prevents stale response overwrite.
+
+25. Why freeze flashcard order for one practice session?
+Answer points: saving confidence should not reshuffle the card currently being studied; new priority applies next session, giving predictable UX.
+
+26. What is the most useful design pattern here?
+Answer points: provider/strategy plus dependency injection; same pipeline works with OpenAI, Gemini, and fakes; testability and migration.
+
+27. Why composition over inheritance?
+Answer points: capabilities vary independently; avoids rigid base classes; functions/classes receive only required collaborators.
+
+28. How do you handle partial external failure?
+Answer points: structured errors with retryability; root research vs optional child sources; partial discussion results/warnings; no silent fabricated research.
+
+29. What would you change for 100,000 users?
+Answer points: dedicated queue/workers, concurrency/rate quotas, Redis/cache tier, streaming/event progress, observability/tracing, per-tenant limits, backpressure, replicas/index review, object storage for batch output.
+
+30. What would you monitor in production?
+Answer points: job time by stage, queue age/depth, success/retry/failure codes, provider latency/tokens/cost, crawl failures, coverage repairs, Mongo latency, auth errors, Vercel duration, cache hit rate.
+
+31. Why two Vercel projects?
+Answer points: independent framework/runtime builds and env variables; frontend same-origin proxy retains cookie-friendly API calls; downside is configuration complexity.
+
+32. What tests give the highest confidence?
+Answer points: schema cross-field tests, SSRF/redirect/byte-limit tests, coverage/schedule edge tests, worker free/paid/state tests, auth ownership HTTP tests, evaluator end-to-end test.
+
+33. What is currently the largest technical debt?
+Answer points: serverless background-work reliability, duplicated frontend types, evaluator provider selection mismatch, 30-day interactive cap versus 60-day core capability, missing billing/abuse controls.
+
+34. If the AI provider returns malformed JSON, what happens?
+Answer points: provider parses/validates; retry within bound for recoverable malformed output; structured error after exhaustion; no invalid kit is persisted as ready.
+
+35. Why use stable application IDs instead of model-generated IDs?
+Answer points: predictable references, collision/duplicate control, reproducible coverage/schedule, safe merging/regeneration, easier tests.
+
+36. How would you add another model provider?
+Answer points: implement StructuredLlmProvider, add validated config/factory branch, keep stage/pipeline logic unchanged, add contract/error/retry tests.
+
+37. How would you add Stripe subscriptions safely?
+Answer points: hosted checkout, verified webhook as source of truth, server-side plan repository update, idempotent event storage, never trust browser plan, entitlement tests.
+
+38. What was your most defensible product/engineering decision?
+Answer points: keep semantic generation in AI but make coverage, references, schedules, authorization, and output validity deterministic and server-controlled.
+
+39. What happens when a company blocks crawling?
+Answer points: structured research warning/no-research brief; do not fabricate; still generate from JD where possible; show attributable sources only.
+
+40. What would you build next?
+Answer points: production-grade queue, billing, email verification/reset, rate limiting, richer observability/evals, derived shared UI types, provider parity in evaluator, accessibility/browser E2E tests.
+
+
+13. FINAL SUMMARY
+-----------------
+Prepwise is best described as a reliability-focused AI product. The visible result is an interview kit, but the engineering value is in the boundaries around the AI: safe source collection, structured provider adapters, durable asynchronous work, schema/state invariants, deterministic coverage and schedules, preserved human edits, secure owner isolation, and automated evaluator output. In an interview, emphasize not only what the model generates, but how the system proves that the generated result is usable, attributable, complete, and recoverable.

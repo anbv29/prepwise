@@ -1,0 +1,86 @@
+PREPWISE — 4-MINUTE ASSIGNMENT VIDEO SCRIPT
+============================================
+
+Target duration: 3 minutes 45 seconds to 4 minutes.
+Recording tip: use one realistic job description and a public company URL. Create the kit shortly before recording so you can demonstrate the complete result without waiting through the entire model call. Keep another fresh kit ready to show the live progress screen.
+
+
+0:00–0:20 — INTRODUCTION AND PROBLEM
+ON SCREEN: Open the Prepwise landing page. Briefly scroll past the feature summary, then choose “Open workspace” or sign in.
+
+SAY:
+“This is Prepwise, an AI interview preparation workspace. It converts a real job description, company website, and available preparation time into a researched, measurable kit containing company context, requirements, linked questions, flashcards, coverage, and an exact-day study plan.”
+
+
+0:20–0:55 — CREATE A KIT END TO END
+ON SCREEN: Open “New kit.” Show the single-role form. Paste the prepared job description, enter the company URL, select the days, and click “Build my kit.”
+
+SAY:
+“I paste the job description, enter the official company URL, and choose the days until the interview. The screen also supports validated JSON or CSV batch uploads. Submission creates an idempotent request and persistent background job, so retries do not duplicate work.”
+
+ON SCREEN: Let the progress screen display its stages.
+
+SAY:
+“The progress page shows the real pipeline stages rather than a cosmetic timer: requirement extraction, company research, question generation, coverage repair, flashcards, and schedule construction.”
+
+
+0:55–1:35 — RESEARCH AND GENERATION APPROACH
+ON SCREEN: Open the already completed kit, then show Overview and Company Brief, including source links.
+
+SAY:
+“The worker first turns the untrusted description into atomic must-have and nice-to-have requirements with stable IDs. It safely crawls a ranked set of useful company pages while respecting robots.txt and strict limits. SSRF protection, redirect validation, and response bounds secure this research. Paid plans can also use public interview-discussion grounding; free plans keep core generation but skip that optional search.
+
+The provider-neutral LLM layer supports Gemini or OpenAI structured output. Scraped text remains untrusted, and server-owned source IDs prevent invented links.”
+
+
+1:35–2:05 — SECOND COVERAGE PASS
+ON SCREEN: Open Role, Questions, and then Coverage. Point at requirement references and the covered/uncovered metrics.
+
+SAY:
+“The key reliability feature is the second coverage pass. TypeScript code, not the model, calculates coverage from stable references. If a must-have is missing, one targeted repair call receives those gaps, the result is merged, and coverage is recalculated. If anything remains uncovered, generation fails closed. Flashcards use the same repair.”
+
+
+2:05–2:50 — EDIT, REORDER, AND REGENERATE WITHOUT LOSING WORK
+ON SCREEN: Open Questions. Edit one question and save it. Drag another question to a different position/category or use its arrow controls. Open Regenerate for that category and show the preview before accepting.
+
+SAY:
+“This is a builder, not a read-only report. I can add, edit, delete, and reorder questions across categories. Optimistic saves roll back on failure, and a sequence guard prevents stale responses overwriting newer edits.
+
+My edited question is protected. This regeneration preview shows what will be preserved and replaced. After acceptance, only selected unprotected content changes; references are remapped and coverage plus the schedule are rebuilt. The edit remains unchanged.”
+
+
+2:50–3:25 — PRACTICE MODE AND SCHEDULE
+ON SCREEN: Open Flashcards, then Practice. Reveal an answer, rate it 1 or 2, advance a card, and show the progress. Then open Schedule.
+
+SAY:
+“In Practice mode, I answer before revealing the back and record confidence from one to four. Progress is saved per user and kit. The current order stays stable, while the next session prioritizes unseen and low-confidence cards.
+
+The deterministic schedule contains exactly the requested sequential days, places must-have and harder material earlier, schedules every question, and creates review days when needed.”
+
+
+3:25–3:50 — CREATIVE FEATURE AND DESIGN DECISION
+ON SCREEN: Return to the regeneration preview or Coverage page, then briefly show the dashboard with saved kits.
+
+SAY:
+“My additional UX feature is the regeneration impact preview. Candidates see the blast radius before accepting an AI rewrite.
+
+My main design decision is separating creativity from correctness. AI handles interpretation and personalized content, while IDs, citations, ownership, coverage, scheduling, and final validity remain deterministic and schema-validated. This makes the system explainable and testable.”
+
+
+3:50–4:00 — CLOSE
+ON SCREEN: End on the kit Overview or Prepwise landing page.
+
+SAY:
+“That is Prepwise: researched preparation, measurable coverage, editable AI output, and a study plan tied to the candidate’s actual deadline.”
+
+
+PRE-RECORDING CHECKLIST
+-----------------------
+1. Use a working production/local API, MongoDB connection, and Gemini/OpenAI key.
+2. Confirm registration, login, and logout before recording.
+3. Prepare one completed rich kit and one new input for the progress demonstration.
+4. Choose a company site that permits simple server-side crawling.
+5. Confirm source links, Coverage, Schedule, Questions, Regeneration Preview, and Practice load.
+6. Avoid showing environment files, API keys, Mongo credentials, browser password manager popups, or terminal secrets.
+7. Keep the browser zoom around 90–100%, notifications muted, and the mouse movement deliberate.
+8. Record at 1080p, speak naturally, and trim waiting/loading time while keeping the true staged progress visible.

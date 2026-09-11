@@ -58,7 +58,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const inputClass =
-  'mt-2 min-h-11 w-full border border-[var(--border)] bg-[var(--paper)] px-3 text-[var(--ink)] focus:border-[var(--accent)]';
+  'paper-field mt-2 px-3 text-[var(--ink)]';
 
 function QuestionForm({
   defaultValues,
@@ -146,7 +146,7 @@ function QuestionForm({
             Cancel
           </button>
         ) : null}
-        <button className="min-h-11 bg-[var(--accent)] px-5 font-semibold text-white" type="submit">
+        <button className="primary-action min-h-11 px-5" type="submit">
           {submitLabel}
         </button>
       </div>
@@ -181,7 +181,7 @@ function SortableQuestion({
   return (
     <motion.article
       layout
-      className={`bg-[var(--surface)] p-5 sm:p-6 ${sortable.isDragging ? 'relative z-10 opacity-60 shadow-xl' : ''}`}
+      className={`bg-[var(--surface)] p-5 sm:p-6 ${sortable.isDragging ? 'relative z-10 opacity-70 shadow-[0_18px_40px_rgb(66_42_30/0.14)]' : ''}`}
       ref={sortable.setNodeRef}
       style={style}
     >
@@ -207,8 +207,8 @@ function SortableQuestion({
               </span>
             ) : null}
           </div>
-          <h4 className="mt-3 text-lg font-semibold leading-7">{question.prompt}</h4>
-          <p className="mt-3 border-l-2 border-[var(--border-strong)] pl-4 leading-7 text-[var(--muted)]">
+          <h4 className="font-display mt-3 text-xl font-semibold leading-7">{question.prompt}</h4>
+          <p className="mt-4 border-l border-[var(--border-strong)] pl-4 leading-7 text-[var(--ink-secondary)]">
             {question.answer_outline}
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -334,10 +334,10 @@ function CategoryColumn({ category, kitId }: { category: Question['category']; k
   }
 
   return (
-    <section className="border border-[var(--border)]" ref={droppable.setNodeRef}>
-      <header className="flex flex-col gap-4 bg-[var(--surface-subtle)] p-4 sm:flex-row sm:items-center sm:justify-between">
+    <section className="overflow-hidden rounded-xl border border-[var(--border)]" ref={droppable.setNodeRef}>
+      <header className="flex flex-col gap-4 border-b border-[var(--divider)] bg-[var(--surface-elevated)] p-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h3 className="text-lg font-semibold">{labels[category]}</h3>
+          <h3 className="font-display text-xl font-semibold">{labels[category]}</h3>
           <p className="text-sm text-[var(--muted)] tabular-nums">
             {questions.length} question{questions.length === 1 ? '' : 's'}
           </p>
@@ -382,7 +382,7 @@ function AddQuestionDialog() {
     <Dialog onOpenChange={setOpen} open={open}>
       <DialogTrigger asChild>
         <button
-          className="inline-flex min-h-11 items-center gap-2 bg-[var(--accent)] px-5 font-semibold text-white"
+          className="primary-action min-h-11 px-5"
           type="button"
         >
           <Plus size={17} /> Add question

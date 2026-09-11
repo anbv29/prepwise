@@ -48,7 +48,7 @@ export function RegenerateDialog({
     <Dialog onOpenChange={setOpen} open={open}>
       <DialogTrigger asChild>
         <button
-          className="inline-flex min-h-11 items-center gap-2 border border-[var(--border-strong)] bg-[var(--surface)] px-4 text-sm font-semibold hover:border-[var(--accent)] hover:text-[var(--accent)]"
+          className="secondary-action min-h-11 px-4 py-2"
           type="button"
         >
           <RefreshCw size={16} /> {label}
@@ -84,7 +84,7 @@ export function RegenerateDialog({
               </ul>
             </div>
             {preview.data.preservedEditedItems > 0 ? (
-              <div className="mt-5 flex gap-3 bg-[var(--success-soft)] p-4 text-sm">
+              <div className="mt-5 flex gap-3 rounded-xl border border-[var(--success)] bg-[var(--success-soft)] p-4 text-sm">
                 <ShieldCheck className="mt-0.5 shrink-0 text-[var(--success)]" size={18} />
                 <p>
                   <strong>{preview.data.preservedEditedItems} edited item(s)</strong> will stay
@@ -95,14 +95,14 @@ export function RegenerateDialog({
             <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <DialogClose asChild>
                 <button
-                  className="min-h-11 border border-[var(--border-strong)] px-5 font-semibold"
+                  className="secondary-action min-h-11 px-5 py-2"
                   type="button"
                 >
                   Keep current version
                 </button>
               </DialogClose>
               <button
-                className="inline-flex min-h-11 items-center justify-center gap-2 bg-[var(--accent)] px-5 font-semibold text-white disabled:opacity-60"
+                className="primary-action min-h-11 px-5"
                 disabled={regenerate.isPending}
                 onClick={() => regenerate.mutate()}
                 type="button"

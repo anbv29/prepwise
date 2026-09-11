@@ -5,13 +5,7 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUpRight,
-  BadgeCheck,
-  BookOpen,
-  Building2,
-  CalendarDays,
   CheckCircle2,
-  ListChecks,
-  MessageSquareText,
   TriangleAlert,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -74,12 +68,12 @@ function sourceName(source: string) {
 function SectionNavigation({ kitId, active }: { kitId: string; active: KitSection }) {
   return (
     <>
-      <div className="sticky top-16 z-30 -mx-5 overflow-x-auto border-y border-[var(--border)] bg-[var(--paper)] px-5 lg:hidden">
-        <nav aria-label="Kit sections" className="flex min-w-max gap-1 py-2">
+      <div className="scrollbar-none sticky top-16 z-30 -mx-5 overflow-x-auto border-y border-[var(--divider)] bg-[var(--paper)] px-5 lg:hidden">
+        <nav aria-label="Kit sections" className="flex min-w-max gap-5">
           {kitSections.map((item) => (
             <Link
               aria-current={active === item.id ? 'page' : undefined}
-              className={`rounded-lg px-3 py-2 text-sm font-semibold ${active === item.id ? 'bg-[var(--accent-soft)] text-[var(--accent)]' : 'text-[var(--muted)] hover:bg-[var(--surface-subtle)] hover:text-[var(--ink)]'}`}
+              className={`border-b py-3 text-sm font-semibold ${active === item.id ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-transparent text-[var(--muted)] hover:text-[var(--ink)]'}`}
               href={sectionHref(kitId, item.id)}
               key={item.id}
             >
@@ -93,7 +87,7 @@ function SectionNavigation({ kitId, active }: { kitId: string; active: KitSectio
           {kitSections.map((item) => (
             <Link
               aria-current={active === item.id ? 'page' : undefined}
-              className={`block border-l-2 px-4 py-3 ${active === item.id ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]' : 'border-transparent text-[var(--muted)] hover:border-[var(--border-strong)] hover:text-[var(--ink)]'}`}
+              className={`block border-l px-4 py-3 ${active === item.id ? 'border-[var(--accent)] bg-[var(--surface-elevated)] text-[var(--accent)]' : 'border-transparent text-[var(--muted)] hover:border-[var(--border-strong)] hover:text-[var(--ink)]'}`}
               href={sectionHref(kitId, item.id)}
               key={item.id}
             >
@@ -117,10 +111,12 @@ function SectionHeading({
   text: string;
 }) {
   return (
-    <header className="border-b border-[var(--border)] pb-7">
-      <p className="text-sm font-semibold text-[var(--accent)]">{eyebrow}</p>
-      <h2 className="mt-2 text-3xl font-semibold tracking-[-0.035em]">{title}</h2>
-      <p className="mt-3 max-w-2xl text-[var(--muted)]">{text}</p>
+    <header className="border-b border-[var(--divider)] pb-7">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <h2 className="editorial-title max-w-3xl text-4xl">{title}</h2>
+        <span className="editorial-label pt-2">{eyebrow}</span>
+      </div>
+      <p className="mt-4 max-w-2xl text-[var(--ink-secondary)]">{text}</p>
     </header>
   );
 }
@@ -133,37 +129,37 @@ function OverviewSection({ kit, kitId }: { kit: Kit; kitId: string }) {
       id: 'brief' as const,
       label: 'Company brief',
       value: `${kit.company_brief.sources.length} sources`,
-      icon: Building2,
+      description: 'Research and verified sources',
     },
     {
       id: 'role' as const,
       label: 'Role analysis',
       value: `${kit.role.requirements.length} requirements`,
-      icon: ListChecks,
+      description: 'Responsibilities and requirements',
     },
     {
       id: 'questions' as const,
       label: 'Question bank',
       value: `${kit.questions.length} questions`,
-      icon: MessageSquareText,
+      description: 'Role-specific interview practice',
     },
     {
       id: 'flashcards' as const,
       label: 'Flashcards',
       value: `${kit.flashcards.length} prompts`,
-      icon: BookOpen,
+      description: 'Active-recall study prompts',
     },
     {
       id: 'schedule' as const,
       label: 'Study schedule',
       value: `${totalMinutes} total minutes`,
-      icon: CalendarDays,
+      description: 'A daily preparation sequence',
     },
     {
       id: 'coverage' as const,
       label: 'Coverage check',
       value: `${percent}% covered`,
-      icon: BadgeCheck,
+      description: 'Requirement-level gap check',
     },
   ];
 
@@ -174,28 +170,31 @@ function OverviewSection({ kit, kitId }: { kit: Kit; kitId: string }) {
         title="Everything prepared for this interview"
         text="Each part of the kit has its own workspace. Start with the company and role context, then use the question bank and schedule for focused practice."
       />
-      <div className="mt-8 grid border-l border-t border-[var(--border)] sm:grid-cols-2">
-        {cards.map(({ id, label, value, icon: Icon }) => (
+      <div className="mt-8 border-y border-[var(--divider)]">
+        {cards.map(({ id, label, value, description }, index) => (
           <Link
-            className="group border-b border-r border-[var(--border)] bg-[var(--surface)] p-6 hover:bg-[var(--surface-subtle)]"
+            className="group grid gap-3 border-b border-[var(--divider)] py-5 last:border-b-0 hover:bg-[var(--surface-elevated)] sm:grid-cols-[3rem_minmax(0,1fr)_auto_auto] sm:items-center sm:px-5"
             href={sectionHref(kitId, id)}
             key={id}
           >
-            <div className="flex items-start justify-between gap-4">
-              <Icon className="text-[var(--accent)]" size={21} />
-              <ArrowRight
-                className="text-[var(--muted)] transition-transform group-hover:translate-x-1 group-hover:text-[var(--accent)]"
-                size={17}
-              />
+            <span className="text-xs font-semibold text-[var(--accent)] tabular-nums">
+              {String(index + 1).padStart(2, '0')}
+            </span>
+            <div>
+              <h3 className="font-display text-xl font-semibold">{label}</h3>
+              <p className="mt-1 text-sm text-[var(--muted)]">{description}</p>
             </div>
-            <h3 className="mt-8 font-semibold">{label}</h3>
-            <p className="mt-1 text-sm text-[var(--muted)] tabular-nums">{value}</p>
+            <p className="text-sm text-[var(--muted)] tabular-nums sm:text-right">{value}</p>
+            <ArrowRight
+              className="text-[var(--muted)] transition-transform group-hover:translate-x-1 group-hover:text-[var(--accent)]"
+              size={17}
+            />
           </Link>
         ))}
       </div>
-      <div className="mt-8 border-l-2 border-[var(--accent)] bg-[var(--surface)] p-6">
+      <div className="paper-panel mt-8 p-6 sm:p-7">
         <p className="text-sm font-semibold text-[var(--accent)]">Recommended next step</p>
-        <h3 className="mt-2 text-xl font-semibold">
+        <h3 className="font-display mt-2 text-2xl font-semibold">
           Review the must-have requirements before practising answers.
         </h3>
         <p className="mt-2 max-w-2xl text-[var(--muted)]">
@@ -298,17 +297,17 @@ function ScheduleSection({ kit }: { kit: Kit }) {
         title={`${kit.schedule.days_available} days, ordered by priority`}
         text="High-difficulty must-have topics appear earlier, leaving time for repetition and mixed review."
       />
-      <ol className="mt-8 divide-y divide-[var(--border)] border-y border-[var(--border)]">
+      <ol className="mt-8 divide-y divide-[var(--divider)] border-y border-[var(--border-strong)]">
         {kit.schedule.days.map((day) => (
           <li
             className="grid gap-4 py-6 sm:grid-cols-[80px_minmax(0,1fr)_100px] sm:items-center"
             key={day.day}
           >
             <span className="text-sm font-semibold text-[var(--accent)] tabular-nums">
-              DAY {String(day.day).padStart(2, '0')}
+              Day {String(day.day).padStart(2, '0')}
             </span>
             <div>
-              <h3 className="font-semibold">{day.focus}</h3>
+              <h3 className="font-display text-lg font-semibold">{day.focus}</h3>
               <p className="mt-1 text-sm text-[var(--muted)]">
                 {day.question_ids.length} practice question
                 {day.question_ids.length === 1 ? '' : 's'}
@@ -334,16 +333,16 @@ function CoverageSection({ kit }: { kit: Kit }) {
         title={`${percent}% of role requirements covered`}
         text="Coverage links the generated question bank back to the source requirements so preparation gaps remain explicit."
       />
-      <div className="mt-8 flex items-end justify-between gap-5 border-b border-[var(--border)] pb-5">
+      <div className="mt-8 flex items-end justify-between gap-5 border-b border-[var(--divider)] pb-5">
         <div>
           <p className="text-sm text-[var(--muted)]">Validation passes</p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums">{kit.coverage.passes}</p>
+          <p className="font-display mt-1 text-3xl font-semibold tabular-nums">{kit.coverage.passes}</p>
         </div>
-        <p className="text-5xl font-semibold tracking-[-0.05em] text-[var(--success)] tabular-nums">
+        <p className="font-display text-5xl font-semibold text-[var(--success-strong)] tabular-nums">
           {percent}%
         </p>
       </div>
-      <div className="mt-6 divide-y divide-[var(--border)] border-y border-[var(--border)]">
+      <div className="mt-6 divide-y divide-[var(--divider)] border-y border-[var(--border-strong)]">
         {kit.role.requirements.map((requirement) => {
           const isCovered = !uncovered.has(requirement.id);
           const questionCount = kit.questions.filter((question) =>
@@ -444,7 +443,7 @@ export function KitSectionScreen({ kitId, section }: { kitId: string; section: K
                 <span aria-hidden="true">/</span>
                 <span>{kit.source.location || 'Location not specified'}</span>
               </div>
-              <h1 className="mt-2 text-balance text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">
+              <h1 className="editorial-title mt-2 text-balance text-4xl sm:text-5xl">
                 {kit.role.title}
               </h1>
             </div>
@@ -452,7 +451,7 @@ export function KitSectionScreen({ kitId, section }: { kitId: string; section: K
           </div>
         </header>
         {displayedWarnings.length > 0 ? (
-          <div className="mb-7 flex gap-3 border-l-2 border-[var(--warning)] bg-[var(--warning-soft)] p-4 text-sm">
+          <div className="mb-7 flex gap-3 rounded-xl border border-[var(--warning)] bg-[var(--warning-soft)] p-4 text-sm">
             <TriangleAlert className="mt-0.5 shrink-0 text-[var(--warning)]" size={18} />
             <div>
               <p className="font-semibold text-[var(--warning)]">Limited source note</p>
@@ -463,7 +462,7 @@ export function KitSectionScreen({ kitId, section }: { kitId: string; section: K
         <div className="lg:hidden">
           <SectionNavigation active={section} kitId={kitId} />
         </div>
-        <div className="mt-9 grid items-start gap-12 lg:grid-cols-[230px_minmax(0,1fr)]">
+        <div className="mt-9 grid items-start gap-12 lg:grid-cols-[220px_minmax(0,1fr)]">
           <div className="hidden lg:block">
             <SectionNavigation active={section} kitId={kitId} />
           </div>

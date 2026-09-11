@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { House, LogOut } from 'lucide-react';
+import { House, LayoutGrid, LogOut, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, type ReactNode } from 'react';
@@ -49,45 +49,38 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (isPracticeMode) return children;
 
   return (
-    <div className="min-h-screen bg-[var(--paper)]">
-      <header className="app-header sticky top-0 z-40 border-b border-[var(--border)]">
-        <div className="mx-auto flex min-h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
-          <Link
-            className="flex items-center gap-3 font-semibold tracking-[-0.01em]"
-            href="/dashboard"
-          >
-            <BrandMark /> Prepwise
-          </Link>
-          <div className="flex items-center gap-2 sm:gap-4">
-            <span className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold capitalize text-[var(--muted)]">
-              {userQuery.data.plan}
-            </span>
-            <span className="hidden max-w-56 truncate text-sm text-[var(--muted)] sm:block">
-              {userQuery.data.firstName
-                ? `${userQuery.data.firstName} ${userQuery.data.lastName ?? ''}`.trim()
-                : userQuery.data.email}
-            </span>
-            <Link
-              aria-label="Return to main site"
-              className="inline-flex h-10 items-center gap-2 rounded-lg border border-[var(--border)] px-3 text-sm font-semibold text-[var(--muted)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--ink)]"
-              href="/"
-            >
-              <House size={16} />
-              <span className="hidden md:inline">Main site</span>
-            </Link>
-            <button
-              aria-label="Sign out"
-              className="grid h-10 w-10 place-items-center rounded-lg text-[var(--muted)] transition-colors hover:bg-[var(--surface-subtle)] hover:text-[var(--ink)]"
-              disabled={logout.isPending}
-              onClick={() => logout.mutate()}
-              type="button"
-            >
-              <LogOut size={18} />
-            </button>
+    <div className="min-h-screen bg-[var(--paper)] md:grid md:grid-cols-[232px_minmax(0,1fr)]">
+      <aside className="sticky top-0 hidden h-screen flex-col bg-[var(--surface-dark)] px-5 py-7 text-[var(--on-dark)] md:flex">
+        <Link className="flex items-center gap-3 px-1" href="/dashboard">
+          <span className="rounded-full bg-[var(--on-dark)]"><BrandMark /></span>
+          <span className="font-display text-2xl font-semibold">Prepwise</span>
+        </Link>
+        <nav aria-label="Workspace navigation" className="mt-12 space-y-2">
+          <Link className={`flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-semibold ${pathname === '/dashboard' ? 'bg-white/10 text-white' : 'text-[#d5c7bd] hover:bg-white/6 hover:text-white'}`} href="/dashboard"><LayoutGrid size={18} /> Workspace</Link>
+          <Link className={`flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-semibold ${pathname.startsWith('/kits/new') ? 'bg-white/10 text-white' : 'text-[#d5c7bd] hover:bg-white/6 hover:text-white'}`} href="/kits/new"><Plus size={18} /> New kit</Link>
+          <Link className="flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-semibold text-[#d5c7bd] hover:bg-white/6 hover:text-white" href="/"><House size={18} /> Main site</Link>
+        </nav>
+        <div className="mt-auto border-t border-white/12 pt-5">
+          <div className="px-2">
+            <p className="truncate text-sm font-semibold">{userQuery.data.firstName ? `${userQuery.data.firstName} ${userQuery.data.lastName ?? ''}`.trim() : userQuery.data.email}</p>
+            <p className="mt-1 text-xs capitalize text-[#ae9d92]">{userQuery.data.plan} plan</p>
           </div>
+          <button aria-label="Sign out" className="mt-4 flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-sm font-semibold text-[#d5c7bd] hover:bg-white/6 hover:text-white" disabled={logout.isPending} onClick={() => logout.mutate()} type="button"><LogOut size={18} /> Sign out</button>
         </div>
-      </header>
-      {children}
+      </aside>
+      <div className="min-w-0">
+        <header className="app-header sticky top-0 z-40 border-b border-[var(--divider)] md:hidden">
+          <div className="flex min-h-16 items-center justify-between px-5">
+            <Link className="flex items-center gap-3" href="/dashboard"><BrandMark /><span className="font-display text-xl font-semibold">Prepwise</span></Link>
+            <div className="flex items-center gap-1">
+              <Link aria-label="Create new kit" className="grid size-11 place-items-center rounded-lg text-[var(--accent)] hover:bg-[var(--accent-soft)]" href="/kits/new"><Plus size={20} /></Link>
+              <Link aria-label="Return to main site" className="grid size-11 place-items-center rounded-lg text-[var(--muted)] hover:bg-[var(--surface-subtle)]" href="/"><House size={18} /></Link>
+              <button aria-label="Sign out" className="grid size-11 place-items-center rounded-lg text-[var(--muted)] hover:bg-[var(--surface-subtle)]" disabled={logout.isPending} onClick={() => logout.mutate()} type="button"><LogOut size={18} /></button>
+            </div>
+          </div>
+        </header>
+        <div className="page-enter">{children}</div>
+      </div>
     </div>
   );
 }

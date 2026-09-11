@@ -38,7 +38,7 @@ export default async function KitSectionPage({
 
   return (
     <AppShell>
-      <div className="mx-auto max-w-6xl px-5 py-9 sm:px-8 sm:py-12">
+      <div className="mx-auto max-w-7xl px-5 py-9 sm:px-8 sm:py-12 xl:px-12">
         <KitSectionScreen kitId={kitId} section={section} />
       </div>
     </AppShell>

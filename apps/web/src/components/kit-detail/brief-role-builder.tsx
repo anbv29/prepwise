@@ -10,7 +10,7 @@ import { useKitEditor } from './kit-editor-context';
 import { RegenerateDialog } from './regenerate-dialog';
 
 const fieldClass =
-  'min-h-11 w-full border border-[var(--border)] bg-[var(--paper)] px-3 text-sm text-[var(--ink)] focus:border-[var(--accent)]';
+  'paper-field min-h-11 px-3 text-sm text-[var(--ink)]';
 
 export function BriefBuilder({ kitId }: { kitId: string }) {
   const { kit, updateKit } = useKitEditor();
@@ -70,7 +70,7 @@ function ResponsibilityEditor({ index, value }: { index: number; value: string }
   const { updateKit } = useKitEditor();
 
   return (
-    <li className="border border-[var(--border)] bg-[var(--surface)] p-4">
+    <li className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
       <InlineTextEditor
         label={`Responsibility ${index + 1}`}
         onSave={(nextValue) =>
@@ -215,7 +215,7 @@ export function RoleBuilder() {
 
   return (
     <div className="mt-8">
-      <div className="grid gap-6 border-b border-[var(--border)] pb-8 sm:grid-cols-2">
+      <div className="grid gap-6 border-b border-[var(--divider)] pb-8 sm:grid-cols-2">
         <div>
           <p className="mb-2 text-sm font-semibold text-[var(--muted)]">Role title</p>
           <InlineTextEditor
@@ -243,7 +243,7 @@ export function RoleBuilder() {
       <section className="mt-8">
         <div className="flex items-end justify-between gap-4">
           <div>
-            <h3 className="text-lg font-semibold">Core responsibilities</h3>
+            <h3 className="font-display text-xl font-semibold">Core responsibilities</h3>
             <p className="mt-1 text-sm text-[var(--muted)]">
               Edit or add evidence you want to prepare.
             </p>
@@ -266,7 +266,7 @@ export function RoleBuilder() {
             value={responsibility}
           />
           <button
-            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 bg-[var(--ink)] px-5 font-semibold text-[var(--paper)]"
+            className="primary-action min-h-11 shrink-0 px-5"
             type="submit"
           >
             <Plus size={17} /> Add
@@ -275,11 +275,11 @@ export function RoleBuilder() {
       </section>
 
       <section className="mt-10">
-        <h3 className="text-lg font-semibold">Requirements</h3>
+        <h3 className="font-display text-xl font-semibold">Requirements</h3>
         <p className="mt-1 text-sm text-[var(--muted)]">
           Coverage updates automatically when requirements or questions change.
         </p>
-        <div className="mt-4 overflow-x-auto border border-[var(--border)] bg-[var(--surface)]">
+        <div className="mt-4 overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]">
           <table className="w-full min-w-[760px] border-collapse text-left">
             <thead className="bg-[var(--surface-subtle)] text-sm text-[var(--muted)]">
               <tr>
@@ -332,7 +332,7 @@ export function RoleBuilder() {
             <option value="nice">Preferred</option>
           </select>
           <button
-            className="inline-flex min-h-11 items-center justify-center gap-2 bg-[var(--ink)] px-4 font-semibold text-[var(--paper)]"
+            className="primary-action min-h-11 px-4"
             type="submit"
           >
             <Plus size={17} /> Add

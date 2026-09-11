@@ -81,7 +81,7 @@ export function AuthForm({ mode, returnTo }: { mode: 'login' | 'register'; retur
 
   return (
     <form
-      className="mt-10 space-y-5"
+      className="mt-9 space-y-5"
       onSubmit={form.handleSubmit((values) => mutation.mutate(values))}
     >
       {!isLogin ? (
@@ -90,7 +90,7 @@ export function AuthForm({ mode, returnTo }: { mode: 'login' | 'register'; retur
             First name
             <input
               autoComplete="given-name"
-              className="mt-2 min-h-12 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 text-base text-[var(--ink)]"
+              className="paper-field mt-2 px-4 text-base"
               id="register-first-name"
               type="text"
               {...form.register('firstName')}
@@ -105,7 +105,7 @@ export function AuthForm({ mode, returnTo }: { mode: 'login' | 'register'; retur
             Last name
             <input
               autoComplete="family-name"
-              className="mt-2 min-h-12 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 text-base text-[var(--ink)]"
+              className="paper-field mt-2 px-4 text-base"
               id="register-last-name"
               type="text"
               {...form.register('lastName')}
@@ -123,7 +123,7 @@ export function AuthForm({ mode, returnTo }: { mode: 'login' | 'register'; retur
           Date of birth
           <input
             autoComplete="bday"
-            className="mt-2 min-h-12 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 text-base text-[var(--ink)]"
+            className="paper-field mt-2 px-4 text-base"
             id="register-date-of-birth"
             max={new Date().toISOString().slice(0, 10)}
             type="date"
@@ -140,7 +140,7 @@ export function AuthForm({ mode, returnTo }: { mode: 'login' | 'register'; retur
         Email
         <input
           autoComplete="email"
-          className="mt-2 min-h-12 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 text-base text-[var(--ink)] placeholder:text-[var(--muted)]"
+          className="paper-field mt-2 px-4 text-base"
           id={`${mode}-email`}
           type="email"
           {...form.register('email')}
@@ -155,7 +155,7 @@ export function AuthForm({ mode, returnTo }: { mode: 'login' | 'register'; retur
         Password
         <input
           autoComplete={isLogin ? 'current-password' : 'new-password'}
-          className="mt-2 min-h-12 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 text-base text-[var(--ink)] placeholder:text-[var(--muted)]"
+          className="paper-field mt-2 px-4 text-base"
           id={`${mode}-password`}
           type="password"
           {...form.register('password')}
@@ -172,7 +172,7 @@ export function AuthForm({ mode, returnTo }: { mode: 'login' | 'register'; retur
         ) : null}
       </label>
       <button
-        className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-5 font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+        className="primary-action w-full"
         disabled={mutation.isPending}
         type="submit"
       >

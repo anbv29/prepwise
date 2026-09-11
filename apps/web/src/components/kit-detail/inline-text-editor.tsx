@@ -65,7 +65,7 @@ export function InlineTextEditor({
         <p className={valueClassName}>{value}</p>
         <button
           aria-label={`Edit ${label}`}
-          className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-[var(--muted)] opacity-100 hover:bg-[var(--surface-subtle)] hover:text-[var(--accent)] sm:opacity-0 sm:group-hover/editor:opacity-100 sm:focus-visible:opacity-100"
+          className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-[var(--muted)] opacity-100 hover:bg-[var(--surface-subtle)] hover:text-[var(--accent)] sm:opacity-0 sm:group-hover/editor:opacity-100 sm:focus-visible:opacity-100"
           onClick={() => setEditing(true)}
           type="button"
         >
@@ -76,7 +76,7 @@ export function InlineTextEditor({
   }
 
   const sharedClass =
-    'w-full border border-[var(--border-strong)] bg-[var(--paper)] px-4 py-3 text-[var(--ink)] focus:border-[var(--accent)]';
+    'paper-field px-4 py-3 text-[var(--ink)]';
 
   return (
     <div>
@@ -111,7 +111,7 @@ export function InlineTextEditor({
             <X size={15} /> Cancel
           </button>
           <button
-            className="inline-flex min-h-9 items-center gap-1.5 bg-[var(--accent)] px-3 text-sm font-semibold text-white"
+            className="primary-action min-h-9 px-3 py-1 text-sm"
             onClick={finish}
             type="button"
           >

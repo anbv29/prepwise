@@ -26,7 +26,7 @@ const schema = z.object({
 });
 type Values = z.infer<typeof schema>;
 const fieldClass =
-  'mt-2 min-h-11 w-full border border-[var(--border)] bg-[var(--paper)] px-3 py-2 text-[var(--ink)] focus:border-[var(--accent)]';
+  'paper-field mt-2 px-3 py-2 text-[var(--ink)]';
 
 function FlashcardForm({
   defaults,
@@ -88,7 +88,7 @@ function FlashcardForm({
             Cancel
           </button>
         ) : null}
-        <button className="min-h-11 bg-[var(--accent)] px-5 font-semibold text-white" type="submit">
+        <button className="primary-action min-h-11 px-5" type="submit">
           {submitLabel}
         </button>
       </div>
@@ -111,8 +111,8 @@ function Card({ card, index }: { card: Flashcard; index: number }) {
           </span>
         ) : null}
       </div>
-      <h3 className="mt-5 text-lg font-semibold">{card.front}</h3>
-      <p className="mt-4 leading-7 text-[var(--muted)]">{card.back}</p>
+      <h3 className="font-display mt-5 text-xl font-semibold leading-7">{card.front}</h3>
+      <p className="mt-4 leading-7 text-[var(--ink-secondary)]">{card.back}</p>
       <div className="mt-4 flex flex-wrap gap-2">
         {card.requirement_ids.map((id) => {
           const requirement = kit.role.requirements.find((item) => item.id === id);
@@ -187,7 +187,7 @@ function AddFlashcardDialog() {
     <Dialog onOpenChange={setOpen} open={open}>
       <DialogTrigger asChild>
         <button
-          className="inline-flex min-h-11 items-center gap-2 bg-[var(--accent)] px-5 font-semibold text-white"
+          className="primary-action min-h-11 px-5"
           type="button"
         >
           <Plus size={17} /> Add flashcard
@@ -239,7 +239,7 @@ export function FlashcardBuilder({ kitId }: { kitId: string }) {
               <AddFlashcardDialog />
             </div>
           </div>
-          <div className="grid gap-px border border-[var(--border)] bg-[var(--border)] sm:grid-cols-2">
+          <div className="grid gap-px overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--border)] sm:grid-cols-2">
             {kit.flashcards.map((card, index) => (
               <Card card={card} index={index} key={card.id} />
             ))}

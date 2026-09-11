@@ -9,7 +9,7 @@ export default async function KitPage({ params }: { params: Promise<{ kitId: str
   const { kitId } = await params;
   return (
     <AppShell>
-      <main className="mx-auto max-w-6xl px-5 py-9 sm:px-8 sm:py-12">
+      <main className="mx-auto max-w-7xl px-5 py-9 sm:px-8 sm:py-12 xl:px-12">
         <KitSectionScreen kitId={kitId} section="overview" />
       </main>
     </AppShell>

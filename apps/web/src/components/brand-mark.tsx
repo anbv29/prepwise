@@ -2,27 +2,28 @@ export function BrandMark() {
   return (
     <svg
       aria-hidden="true"
-      className="h-9 w-9 shrink-0 drop-shadow-[0_5px_10px_rgb(79_70_229/0.16)]"
+      className="h-9 w-9 shrink-0"
       fill="none"
       viewBox="0 0 36 36"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <rect fill="var(--accent)" height="36" rx="10" width="36" />
+      <circle cx="18" cy="18" fill="var(--surface)" r="17.25" stroke="var(--border-strong)" />
       <path
-        d="M11 26V10.5h7.1c5 0 7.9 2.35 7.9 6.15s-2.9 6.2-7.9 6.2H15"
-        stroke="white"
+        d="M9.5 11.75h6.25c2.15 0 3.55.62 4.25 1.82v12.18c-.7-1.2-2.1-1.82-4.25-1.82H9.5V11.75Z"
+        stroke="var(--ink)"
         strokeLinecap="round"
         strokeLinejoin="round"
-        strokeWidth="3"
+        strokeWidth="1.45"
       />
       <path
-        d="m17.35 17.05 2.05 2.05 4.15-4.4"
-        stroke="white"
+        d="M26.5 11.75h-2.25c-2.15 0-3.55.62-4.25 1.82v12.18c.7-1.2 2.1-1.82 4.25-1.82h2.25V11.75Z"
+        stroke="var(--ink)"
         strokeLinecap="round"
         strokeLinejoin="round"
-        strokeWidth="2.25"
+        strokeWidth="1.45"
       />
-      <circle cx="11" cy="10.5" fill="#c7d2fe" r="1.5" />
+      <path d="M12.5 16h4.2M12.5 19h4.2" stroke="var(--accent)" strokeLinecap="round" />
+      <path d="M23 16.25h1.5M23 19.25h1.5" stroke="var(--success)" strokeLinecap="round" />
     </svg>
   );
 }

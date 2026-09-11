@@ -221,10 +221,10 @@ export function PracticeScreen({ kitId }: { kitId: string }) {
     const weakCards = latest?.cards.filter((card) => card.confidence <= 2).length ?? 0;
     return (
       <main className="grid min-h-screen place-items-center bg-[var(--paper)] px-5 py-10 text-center">
-        <div className="w-full max-w-xl border border-[var(--border)] bg-[var(--surface)] p-8 sm:p-12">
+        <div className="paper-elevated w-full max-w-xl border border-[var(--border)] p-8 sm:p-12">
           <CheckCircle2 className="mx-auto text-[var(--success)]" size={42} />
           <p className="mt-6 text-sm font-semibold text-[var(--success)]">Session complete</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em]">
+          <h1 className="editorial-title mt-2 text-4xl">
             You reviewed {seenIds.length} card{seenIds.length === 1 ? '' : 's'}
           </h1>
           <p className="mt-4 leading-7 text-[var(--muted)]">
@@ -234,14 +234,14 @@ export function PracticeScreen({ kitId }: { kitId: string }) {
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
             <button
-              className="inline-flex min-h-11 items-center justify-center gap-2 bg-[var(--accent)] px-5 font-semibold text-white"
+              className="primary-action min-h-11 px-5"
               onClick={restart}
               type="button"
             >
               <RotateCcw size={17} /> Start next session
             </button>
             <Link
-              className="inline-flex min-h-11 items-center justify-center border border-[var(--border-strong)] px-5 font-semibold"
+              className="secondary-action min-h-11 px-5"
               href={`/kits/${kitId}/flashcards`}
             >
               Return to kit
@@ -254,17 +254,17 @@ export function PracticeScreen({ kitId }: { kitId: string }) {
 
   return (
     <main className="min-h-screen bg-[var(--paper)] px-5 py-6 sm:px-8 sm:py-8">
-      <div className="mx-auto w-full max-w-3xl">
+      <div className="mx-auto w-full max-w-4xl">
         <header className="flex items-center justify-between gap-5">
           <div>
-            <p className="text-sm font-semibold text-[var(--accent)]">Practice mode</p>
-            <h1 className="mt-1 font-semibold">
+            <p className="text-sm font-semibold text-[var(--accent)]">Focused practice</p>
+            <h1 className="font-display mt-1 text-xl font-semibold">
               {kit.source.company} · {kit.role.title}
             </h1>
           </div>
           <Link
             aria-label="Close practice mode"
-            className="inline-flex size-11 items-center justify-center rounded-full border border-[var(--border)] text-[var(--muted)] hover:text-[var(--ink)]"
+            className="inline-flex size-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] hover:border-[var(--border-strong)] hover:text-[var(--ink)]"
             href={`/kits/${kitId}/flashcards`}
           >
             <X size={19} />
@@ -282,14 +282,14 @@ export function PracticeScreen({ kitId }: { kitId: string }) {
           </div>
           <div
             aria-label={`${seenPercent}% of this session reviewed`}
-            className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--surface-subtle)]"
+            className="mt-3 h-1.5 overflow-hidden rounded-full bg-[var(--surface-subtle)]"
             role="progressbar"
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={seenPercent}
           >
             <div
-              className="h-full rounded-full bg-[var(--accent)] transition-[width]"
+              className="h-full rounded-full bg-[var(--success)] transition-[width]"
               style={{ width: `${seenPercent}%` }}
             />
           </div>
@@ -309,31 +309,31 @@ export function PracticeScreen({ kitId }: { kitId: string }) {
           <motion.button
             animate={{ rotateY: revealed ? 180 : 0 }}
             aria-label={revealed ? 'Hide flashcard answer' : 'Reveal flashcard answer'}
-            className="relative block min-h-[360px] w-full text-left"
+            className="relative block min-h-[400px] w-full text-left"
             onClick={() => setRevealed((value) => !value)}
             style={{ transformStyle: 'preserve-3d' }}
             transition={{ damping: 26, stiffness: 210, type: 'spring' }}
             type="button"
           >
             <section
-              className="absolute inset-0 flex flex-col justify-between border border-[var(--border)] bg-[var(--surface)] p-7 shadow-xl sm:p-10"
+              className="absolute inset-0 flex flex-col justify-between rounded-2xl border border-[var(--border-strong)] bg-[var(--surface)] p-7 shadow-[0_20px_54px_rgb(66_42_30/0.11)] sm:p-12"
               style={{ backfaceVisibility: 'hidden' }}
             >
               <div>
                 <p className="text-sm font-semibold text-[var(--accent)]">Question</p>
-                <p className="mt-8 text-2xl font-semibold leading-10 tracking-[-0.025em] sm:text-3xl">
+                <p className="font-display mt-10 text-3xl font-semibold leading-tight sm:text-4xl">
                   {currentCard?.front}
                 </p>
               </div>
               <p className="text-sm text-[var(--muted)]">Tap, click, or press Space to reveal</p>
             </section>
             <section
-              className="absolute inset-0 flex flex-col justify-between border border-[var(--accent)] bg-[var(--surface)] p-7 shadow-xl sm:p-10"
+              className="absolute inset-0 flex flex-col justify-between rounded-2xl border border-[var(--accent)] bg-[var(--surface)] p-7 shadow-[0_20px_54px_rgb(66_42_30/0.11)] sm:p-12"
               style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
             >
               <div>
                 <p className="text-sm font-semibold text-[var(--accent)]">Answer</p>
-                <p className="mt-8 text-xl leading-9 sm:text-2xl">{currentCard?.back}</p>
+                <p className="font-display mt-10 text-2xl leading-9 sm:text-3xl">{currentCard?.back}</p>
               </div>
               <p className="text-sm text-[var(--muted)]">Choose how confidently you recalled it</p>
             </section>
@@ -343,7 +343,7 @@ export function PracticeScreen({ kitId }: { kitId: string }) {
         <div className="mt-6 grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-3">
           <button
             aria-label="Previous flashcard"
-            className="inline-flex size-11 items-center justify-center border border-[var(--border)] disabled:opacity-30"
+            className="inline-flex size-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] disabled:opacity-30"
             disabled={index === 0}
             onClick={() => move(-1)}
             type="button"
@@ -354,7 +354,7 @@ export function PracticeScreen({ kitId }: { kitId: string }) {
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {confidenceOptions.map((option) => (
                 <button
-                  className="min-h-14 border border-[var(--border)] bg-[var(--surface)] px-2 py-2 text-center hover:border-[var(--border-strong)] disabled:opacity-50"
+                  className="min-h-14 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 py-2 text-center hover:border-[var(--accent)] disabled:opacity-50"
                   disabled={rating.isPending}
                   key={option.value}
                   onClick={() => rateCurrent(option.value)}
@@ -374,7 +374,7 @@ export function PracticeScreen({ kitId }: { kitId: string }) {
           )}
           <button
             aria-label="Next flashcard"
-            className="inline-flex size-11 items-center justify-center border border-[var(--border)] disabled:opacity-30"
+            className="inline-flex size-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] disabled:opacity-30"
             disabled={index === sessionCards.length - 1}
             onClick={() => move(1)}
             type="button"

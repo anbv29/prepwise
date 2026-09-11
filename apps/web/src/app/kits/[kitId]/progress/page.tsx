@@ -16,7 +16,7 @@ export default async function GenerationProgressPage({
 
   return (
     <AppShell>
-      <main className="flex min-h-[calc(100vh-4rem)] items-center px-5 py-12 sm:px-8">
+      <main className="flex min-h-screen items-center px-5 py-12 sm:px-8">
         <GenerationStepper kitId={kitId} {...(job ? { jobId: job } : {})} />
       </main>
     </AppShell>
